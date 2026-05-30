@@ -5,10 +5,6 @@
  * frame-rate-independently in Lure.update().
  */
 export const LureMotionConfig = {
-  /** Cast launch velocity out of the rod tip (toward the water = +x, down = +y). */
-  castHorizontalVelocity: 150,
-  castDownwardVelocity: 230,
-
   /** Constant sink speed once underwater and not reeling. */
   sinkVelocity: 95,
   /** Upward speed while reeling. */
@@ -21,8 +17,9 @@ export const LureMotionConfig = {
   /** Clamp so drift never becomes steering. */
   maxHorizontalVelocity: 180,
 
-  /** Downward acceleration while airborne (0 = straight-line cast). */
-  lureGravity: 0,
+  /** Downward acceleration (world units/sec^2) while the lure is airborne, so a
+   *  charged cast arcs (rises, then falls into the water). */
+  lureGravity: 900,
 
   /** Gentle motion while the lure hangs at the end of the line (max depth). */
   hangBobAmplitude: 7,

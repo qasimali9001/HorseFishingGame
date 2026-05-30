@@ -1,40 +1,73 @@
 import Phaser from 'phaser'
 
 /**
- * Abstracts the minimal controls so gameplay never reads raw pointer state:
- *   - a press queues a one-shot "cast" intent (consumed by the state machine)
- *   - holding the pointer means "reel"; releasing stops
+ * Abstracts the minimal pointer controls into intent primitives so gameplay
+ * never reads raw pointer state. It exposes:
+ *   - `consumeDownEdge()` -- true once per fresh press (the down transition)
+ *   - `isPressed`         -- whether the pointer is currently held
+ *   - `consumeRelease()`  -- on release, the hold duration in ms (one-shot)
  *
- * Keeping this behind one class means rebinding (keyboard, touch) later touches
- * nothing else.
+ * The state machine decides what these MEAN per state: while idle a press
+ * charges a cast and release fires it; while a lure is out, holding reels. By
+ * only ever charging on a down-EDGE that occurs in the idle state, a button
+ * that is still held from reeling (when the lure lands) can never auto-fire a
+ * cast -- the player must release and click again.
  */
 export class InputSystem {
-  private castQueued = false
-  private holding = false
+  private pressed = false
+  private downEdgePending = false
+  private pressStartMs = 0
+  private releaseHoldMs: number | null = null
 
-  constructor(scene: Phaser.Scene) {
+  constructor(private readonly scene: Phaser.Scene) {
     scene.input.on(Phaser.Input.Events.POINTER_DOWN, this.onDown, this)
     scene.input.on(Phaser.Input.Events.POINTER_UP, this.onUp, this)
     scene.input.on(Phaser.Input.Events.GAME_OUT, this.onUp, this)
   }
 
-  /** True once per press; clears itself so a cast can't double-fire. */
-  consumeCast(): boolean {
-    const queued = this.castQueued
-    this.castQueued = false
-    return queued
+  /** True exactly once for each new press (consumed so it can't double-fire). */
+  consumeDownEdge(): boolean {
+    const edge = this.downEdgePending
+    this.downEdgePending = false
+    return edge
   }
 
+  /** Whether the pointer is currently held (used for hold-to-charge / reel). */
+  get isPressed(): boolean {
+    return this.pressed
+  }
+
+  /** Hold-to-reel is just "currently pressed" (the FSM applies it underwater). */
   get isReeling(): boolean {
-    return this.holding
+    return this.pressed
+  }
+
+  /** Live hold duration while pressed (0 when not pressed). */
+  get currentHoldMs(): number {
+    if (!this.pressed) {
+      return 0
+    }
+    return this.scene.time.now - this.pressStartMs
+  }
+
+  /** On release, returns how long the pointer was held (ms); null otherwise. */
+  consumeRelease(): number | null {
+    const ms = this.releaseHoldMs
+    this.releaseHoldMs = null
+    return ms
   }
 
   private onDown(): void {
-    this.castQueued = true
-    this.holding = true
+    this.pressed = true
+    this.downEdgePending = true
+    this.pressStartMs = this.scene.time.now
   }
 
   private onUp(): void {
-    this.holding = false
+    if (!this.pressed) {
+      return
+    }
+    this.pressed = false
+    this.releaseHoldMs = this.scene.time.now - this.pressStartMs
   }
 }

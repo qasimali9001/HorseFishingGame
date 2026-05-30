@@ -30,6 +30,10 @@ export class Lure {
   /** While hanging: the X the lure sways around, and a time accumulator. */
   private hangAnchorX = 0
   private hangTime = 0
+  /** A failed (tap) cast: pops up, never fishes; the FSM aborts it. */
+  private failedCast = false
+  /** Y the cast launched from, so a failed cast knows when it has flopped back. */
+  private launchY = 0
 
   constructor(scene: Phaser.Scene) {
     this.sprite = scene.add
@@ -64,12 +68,32 @@ export class Lure {
     return this.modeValue !== 'docked'
   }
 
-  /** Fires the lure out of the rod tip. `power` scales with rod cast power. */
-  launch(fromX: number, fromY: number, power: number): void {
+  /** True while a failed (tap) cast is in the air; the FSM aborts it on flop-back. */
+  get isFailedCast(): boolean {
+    return this.failedCast
+  }
+
+  /**
+   * Fires the lure out of the rod tip at `speed` (world units/sec) along
+   * `angleDeg` elevation above horizontal (forward = +x, up = -y). Gravity then
+   * arcs it. `failed` marks a tap cast that should never enter the water.
+   */
+  launch(fromX: number, fromY: number, speed: number, angleDeg: number, failed: boolean): void {
+    const rad = Phaser.Math.DegToRad(angleDeg)
     this.sprite.setPosition(fromX, fromY).setVisible(true)
-    this.vx = LureMotionConfig.castHorizontalVelocity * power
-    this.vy = LureMotionConfig.castDownwardVelocity * power
+    this.vx = Math.cos(rad) * speed
+    this.vy = -Math.sin(rad) * speed
     this.modeValue = 'airborne'
+    this.failedCast = failed
+    this.launchY = fromY
+  }
+
+  /**
+   * For a failed cast: true once it has arced back down past its launch height,
+   * so the FSM can dock it and return to idle (it never enters the water).
+   */
+  failedCastFinished(): boolean {
+    return this.failedCast && this.modeValue === 'airborne' && this.vy > 0 && this.sprite.y >= this.launchY
   }
 
   /** Called when the lure crosses the waterline going down. */
@@ -79,11 +103,12 @@ export class Lure {
     }
   }
 
-  /** Reset to the rod (hidden) after a landing. */
+  /** Reset to the rod (hidden) after a landing or a failed-cast flop. */
   dock(): void {
     this.modeValue = 'docked'
     this.vx = 0
     this.vy = 0
+    this.failedCast = false
     this.sprite.setVisible(false)
   }
 
@@ -100,8 +125,14 @@ export class Lure {
     const limitY = WorldConfig.waterlineY + Math.min(ctx.maxDepth, WorldConfig.maxDepth)
 
     if (this.modeValue === 'airborne') {
+      // Airborne the lure arcs through the sky (y < 0 is above water), so the
+      // floor is the sky top -- NOT the waterline. Horizontal momentum is the
+      // launch velocity, never clamped/dragged, so the arc keeps its shape.
       this.vy += LureMotionConfig.lureGravity * dtSec
-      this.integrate(dtSec, limitY)
+      const nextX = this.sprite.x + this.vx * dtSec
+      const nextY = this.sprite.y + this.vy * dtSec
+      this.sprite.x = Phaser.Math.Clamp(nextX, WorldConfig.worldLeftX, worldRightX)
+      this.sprite.y = Phaser.Math.Clamp(nextY, -WorldConfig.skyHeight, limitY)
       return
     }
 
@@ -126,7 +157,7 @@ export class Lure {
     this.integrate(dtSec, limitY)
   }
 
-  /** Applies velocity, clamping X to the world and Y to the line limit. */
+  /** Applies velocity underwater, clamping X to the world and Y to [waterline, limit]. */
   private integrate(dtSec: number, limitY: number): void {
     this.vx = Phaser.Math.Clamp(
       this.vx,

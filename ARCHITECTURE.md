@@ -125,7 +125,8 @@ HorseFishingGame/
         WorldConfig.ts      # waterline (y=0), world width, max depth, camera bounds
         CameraConfig.ts     # follow lerp, deadzone, clamps, restOffsetY (idle framing)
         FishingConfig.ts    # state timings, hook radius
-        LureMotionConfig.ts # cast / sink / reel velocities, drag, momentum retention
+        CastChargeConfig.ts # hold-time -> launch-angle table, click threshold, launch speeds
+        LureMotionConfig.ts # gravity, sink / reel velocities, drag, momentum retention
         HorseConfig.ts      # head-bend angle, anim timing, anchor offsets
         RodConfig.ts        # rod length, default rod stats
         DebugConfig.ts      # debug overlay toggle
@@ -145,8 +146,9 @@ HorseFishingGame/
         Lure.ts             # world position/velocity, hook radius, sink/reel/hang kinematics
         Fish.ts             # one fish: owns its swim AI + wobble + hooked-follow
       systems/
-        InputSystem.ts          # abstracts click=cast / hold=reel
-        FishingStateMachine.ts  # IdleAtSurface -> Casting -> Sinking -> WaitingForBite -> FishHooked -> Reeling -> CatchLanded
+        InputSystem.ts          # press/hold/release primitives (down-edge, isPressed, release-hold-ms)
+        CastCharge.ts           # pure resolver: hold-ms (+ rod power) -> launch speed/angle/failed
+        FishingStateMachine.ts  # IdleAtSurface -> Charging -> Casting/CastFailed -> Sinking -> WaitingForBite -> FishHooked -> Reeling -> CatchLanded
         CameraController.ts     # owns native camera; setMode() per CameraMode; update()
         FishSpawnSystem.ts      # population near camera view, within depth bands
         HookCollisionSystem.ts  # distance check lure <-> fish (no physics engine)
@@ -186,10 +188,20 @@ Rod stats live in `RodStats`/`RodDefinition`, never baked into `PlayerHorse`.
 
 ## Movement & collision (no physics engine)
 
-Custom lightweight kinematics for the lure (sink/reel + decaying horizontal momentum, all from
-`LureMotionConfig`) and simple distance-radius checks for hook collision. No Arcade/Matter,
-no rope simulation. Input is minimal: click = cast, hold = reel, release = stop reeling. The
-player never steers the lure left/right.
+Custom lightweight kinematics for the lure (a gravity arc while airborne; sink/reel + decaying
+horizontal momentum underwater, all from `LureMotionConfig`) and simple distance-radius checks
+for hook collision. No Arcade/Matter, no rope simulation.
+
+**Input model (contextual hold):**
+- **Idle:** press to start charging, *release to cast.* Hold time -> launch elevation angle via
+  `CastChargeConfig` (longer hold = flatter = farther). A tap (hold <= `clickThresholdMs`) is a
+  *failed* cast: the lure flops up and back without entering the water. Forward is always +x, so
+  backward casts are impossible by construction.
+- **Underwater:** hold = reel, release = stop reeling.
+- A charge arms **only on a fresh press made while idle** (a down-edge). A pointer still held
+  from reeling when the lure lands does NOT auto-cast -- the player must release and click again.
+
+The player never steers the lure left/right.
 
 ---
 
@@ -222,8 +234,8 @@ State changes emit `STATE_CHANGED` for the debug overlay. Scenes never directly 
 2. World + camera shell (coordinate system, bounds, `CameraController` native follow). Verify
    follow + clamp + idle framing with a temporary marker.
 3. Horse rig (`PlayerHorse` body+head, idle anim, mouth anchor; `FishingRod` at mouth).
-4. Cast + lure + line (click=cast, head-bend anim, lure from rod tip, line graphics, water-entry
-   camera attach).
+4. Cast + lure + line (hold-to-charge + release-to-cast with hold-time->angle, lure from rod tip,
+   line graphics, water-entry camera attach; cosmetic head-bend anim does not gate the launch).
 5. Reel + momentum (hold=reel kinematics, decaying horizontal drift; horse returns near surface).
 6. Fish + hook + sell (~3 data-driven fish, swim AI, distance hook, hooked fish follows lure,
    land + auto-sell, HUD money/depth).

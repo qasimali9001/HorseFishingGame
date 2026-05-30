@@ -1,14 +1,17 @@
 import { FishingState } from '../types/GameStateTypes'
 import { WorldConfig } from '../config/WorldConfig'
 import { FishingConfig } from '../config/FishingConfig'
+import { CastChargeConfig } from '../config/CastChargeConfig'
 import { EventBus } from '../events/EventBus'
 import { GameEvents } from '../events/GameEvents'
 import { CameraController, CameraMode } from './CameraController'
+import { CastCharge } from './CastCharge'
 import type { InputSystem } from './InputSystem'
 import type { PlayerStats } from './PlayerStats'
 import type { FishSpawnSystem } from './FishSpawnSystem'
 import type { HookCollisionSystem } from './HookCollisionSystem'
 import type { EconomySystem } from './EconomySystem'
+import type { CastAngleTracker } from '../entities/CastAngleTracker'
 import type { PlayerHorse } from '../entities/PlayerHorse'
 import type { Lure } from '../entities/Lure'
 import type { Fish } from '../entities/Fish'
@@ -18,6 +21,7 @@ export interface FishingDeps {
   lure: Lure
   camera: CameraController
   input: InputSystem
+  castTracker: CastAngleTracker
   stats: PlayerStats
   spawn: FishSpawnSystem
   hook: HookCollisionSystem
@@ -34,6 +38,8 @@ export class FishingStateMachine {
   private state: FishingState = FishingState.IdleAtSurface
   private enteredWater = false
   private hookedFish: Fish | null = null
+  /** True between a fresh press (in idle) and its release: the cast is charging. */
+  private charging = false
 
   constructor(private readonly deps: FishingDeps) {
     deps.camera.setFollowTarget(deps.lure.sprite)
@@ -45,17 +51,24 @@ export class FishingStateMachine {
   }
 
   update(dtSec: number): void {
-    if (this.state === FishingState.IdleAtSurface) {
-      if (this.deps.input.consumeCast()) {
-        this.beginCast()
-      }
-    } else if (this.deps.lure.isActive) {
+    // Drain the press down-edge every frame so a press that begins while a lure
+    // is out (i.e. starting a reel) can never linger and auto-arm a charge once
+    // the lure docks. Only a fresh press made while idle charges a cast.
+    const pressedDownEdge = this.deps.input.consumeDownEdge()
+
+    if (!this.deps.lure.isActive) {
+      this.handleChargeInput(pressedDownEdge)
+    } else {
       this.deps.lure.update(dtSec, {
         reeling: this.deps.input.isReeling,
         maxDepth: this.deps.stats.maxDepth,
         reelSpeedMultiplier: this.deps.stats.reelSpeedMultiplier,
       })
-      this.handleWaterEntry()
+      if (this.deps.lure.isFailedCast) {
+        this.handleFailedCast()
+      } else {
+        this.handleWaterEntry()
+      }
     }
 
     const fishing = this.enteredWater && this.deps.lure.isActive
@@ -68,16 +81,52 @@ export class FishingStateMachine {
     }
   }
 
-  private beginCast(): void {
-    this.setState(FishingState.Casting)
-    this.enteredWater = false
-    this.deps.camera.setMode(CameraMode.Casting)
-    this.deps.horse.playCastAnimation(() => this.launchLure())
+  /**
+   * Charge-cast input. A charge arms ONLY on a fresh press (down-edge) made
+   * while idle, so a pointer still held from reeling -- when the lure lands --
+   * cannot auto-fire a cast. Releasing fires the lure at the held angle.
+   */
+  private handleChargeInput(pressedDownEdge: boolean): void {
+    if (pressedDownEdge && this.state === FishingState.IdleAtSurface) {
+      this.charging = true
+      this.setState(FishingState.Charging)
+    }
+
+    if (this.charging && this.deps.input.isPressed) {
+      const holdMs = Math.min(this.deps.input.currentHoldMs, CastChargeConfig.maxChargeMs)
+      const preview = CastCharge.resolve(holdMs, 1)
+      this.deps.castTracker.show(preview.angleDeg, preview.failed)
+    }
+
+    if (this.charging && !this.deps.input.isPressed) {
+      const holdMs = this.deps.input.consumeRelease() ?? 0
+      this.charging = false
+      this.deps.castTracker.hide()
+      this.releaseCast(holdMs)
+    }
   }
 
-  private launchLure(): void {
-    const tip = this.deps.horse.getRodTipWorldPosition()
-    this.deps.lure.launch(tip.x, tip.y, this.deps.stats.castPowerMultiplier)
+  /** Fires the lure on release; hold time picks the angle (tap = failed/up). */
+  private releaseCast(holdMs: number): void {
+    const solution = CastCharge.resolve(holdMs, this.deps.stats.castPowerMultiplier)
+    this.enteredWater = false
+    this.deps.camera.setMode(CameraMode.Casting)
+
+    this.deps.horse.playCastAnimation(() => {
+      const tip = this.deps.horse.getRodTipWorldPosition()
+      this.deps.lure.launch(tip.x, tip.y, solution.speed, solution.angleDeg, solution.failed)
+    })
+
+    this.setState(solution.failed ? FishingState.CastFailed : FishingState.Casting)
+  }
+
+  /** A failed (tap) cast flops up and back; dock it and return to idle. */
+  private handleFailedCast(): void {
+    if (this.deps.lure.failedCastFinished()) {
+      this.deps.lure.dock()
+      this.deps.camera.setMode(CameraMode.SurfaceIdle)
+      this.setState(FishingState.IdleAtSurface)
+    }
   }
 
   private handleWaterEntry(): void {

@@ -651,11 +651,14 @@ Controls are intentionally minimal.
 
 The player does not steer the lure left or right.
 
-Input:
+Input (contextual hold):
 
-- Click/tap once to cast.
-- Hold mouse/touch to reel.
-- Release mouse/touch to stop reeling.
+- At the surface: press and HOLD to charge, RELEASE to cast. Hold time sets the
+  launch angle (longer hold = flatter = farther). A quick tap is a failed cast:
+  the lure flops up and back without entering the water. Casts are always forward.
+- Underwater: hold mouse/touch to reel, release to stop reeling.
+- A cast only charges on a fresh press made while idle: a button still held from
+  reeling when the lure lands will NOT auto-cast (release and click again).
 
 Keyboard controls may be added only as optional accessibility alternatives later.
 
@@ -717,8 +720,8 @@ The first playable loop should be:
 
 1. Player sees goofy horse at surface holding rod in mouth.
 2. Horse idles with subtle silly animation.
-3. Player clicks/taps to cast.
-4. Horse head bends backward in an exaggerated near-180-degree animation.
+3. Player presses and holds to charge, then releases to cast (hold time = angle; a quick tap fails upward).
+4. Horse head bends backward in an exaggerated near-180-degree animation (cosmetic; does not gate the launch).
 5. Rod follows the mouth/head attachment point.
 6. Lure launches from the rod tip.
 7. Line connects rod tip to lure while both are visible.
@@ -752,7 +755,9 @@ Example:
 
 enum FishingState {
   IdleAtSurface,
+  Charging,
   Casting,
+  CastFailed,
   Sinking,
   WaitingForBite,
   FishHooked,
