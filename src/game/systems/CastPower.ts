@@ -6,7 +6,6 @@ export interface CastPowerSolution {
   speed: number
   velocityX: number
   velocityY: number
-  depthFactor: number
 }
 
 /**
@@ -27,18 +26,12 @@ export class CastPower {
       easedPower,
     )
     const speed = baseSpeed * castPowerMultiplier
-    const depthFactor = Phaser.Math.Linear(
-      CastPowerConfig.minDepthFactor,
-      CastPowerConfig.maxDepthFactor,
-      easedPower,
-    )
     const rad = Phaser.Math.DegToRad(CastPowerConfig.launchAngleDeg)
     return {
       power01,
       speed,
       velocityX: Math.cos(rad) * speed,
       velocityY: -Math.sin(rad) * speed,
-      depthFactor,
     }
   }
 }

@@ -9,6 +9,8 @@ export const LureMotionConfig = {
   sinkVelocity: 95,
   /** Upward speed while reeling. */
   reelUpVelocity: 200,
+  /** How quickly reel motion turns toward the rod target (per 1/60s frame). */
+  reelDirectionResponse: 0.2,
 
   /** Horizontal momentum kept per 1/60s while reeling (closer to 1 = driftier). */
   horizontalMomentumRetentionWhileReeling: 0.92,
@@ -22,8 +24,8 @@ export const LureMotionConfig = {
   lureGravity: 900,
 
   /** Gentle motion while the lure hangs at the end of the line (max depth). */
-  hangBobAmplitude: 7,
+  hangBobAmplitude: 1.5,
   hangBobSpeed: 2.2,
-  hangSwayAmplitude: 12,
+  hangSwayAmplitude: 0,
   hangSwaySpeed: 1.1,
 } as const

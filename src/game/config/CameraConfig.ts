@@ -3,17 +3,23 @@
  * objects appear on screen.
  *
  * Critical decoupling rule (see ARCHITECTURE.md):
- *   To move the player up/down the screen at rest you change `restOffsetY`
- *   here -- and ONLY here. The horse's world position, the waterline, fish
+ *   To move the player up/down the screen at rest you change
+ *   `restWaterlineScreenRatio` and/or `restOffsetYWorld` here -- and ONLY here.
  *   depths, and follow math are all untouched. One concern, one knob.
  */
 export const CameraConfig = {
   /**
    * Where the waterline sits on screen while idle at the surface, as a ratio
-   * of view height (0 = top edge, 1 = bottom edge). 0.5 puts the surface (and
-   * the horse standing on it) in the vertical middle of the screen.
+   * of view height (0 = top edge, 1 = bottom edge). Higher values sit the
+   * waterline lower on screen, leaving more sky above for the tall horse rig.
    */
-  restWaterlineScreenRatio: 0.5,
+  restWaterlineScreenRatio: 0.62,
+
+  /**
+   * Extra world-space upward shift applied to idle/casting camera center.
+   * Negative values raise the camera (more sky + horse visible above water).
+   */
+  restOffsetYWorld: -120,
 
   /**
    * Where the follow target (lure) sits on screen while following, as ratios

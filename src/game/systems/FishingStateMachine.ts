@@ -6,6 +6,7 @@ import { GameEvents } from '../events/GameEvents'
 import { CameraController, CameraMode } from './CameraController'
 import { CastPowerConfig } from '../config/CastPowerConfig'
 import { CastPower } from './CastPower'
+import { LinePayoutController } from './LinePayoutController'
 import type { InputSystem } from './InputSystem'
 import type { PlayerStats } from './PlayerStats'
 import type { FishSpawnSystem } from './FishSpawnSystem'
@@ -40,8 +41,8 @@ export class FishingStateMachine {
   private hookedFish: Fish | null = null
   /** True between a fresh press (in idle) and its release: the cast is charging. */
   private charging = false
-  /** Scales max reachable depth for the currently active cast. */
-  private currentCastDepthFactor = 1
+  /** Owns per-cast line payout and taut-line depth constraints. */
+  private readonly linePayout = new LinePayoutController()
 
   constructor(private readonly deps: FishingDeps) {
     deps.camera.setFollowTarget(deps.lure.sprite)
@@ -61,16 +62,32 @@ export class FishingStateMachine {
     if (!this.deps.lure.isActive) {
       this.handleChargeInput(pressedDownEdge)
     } else {
+      const rodTip = this.deps.horse.getRodTipWorldPosition()
+      const lineConstraint = this.linePayout.update(dtSec, {
+        lureMode: this.deps.lure.mode,
+        reeling: this.deps.input.isReeling,
+        reelSpeedMultiplier: this.deps.stats.reelSpeedMultiplier,
+        rodTipX: rodTip.x,
+        rodTipY: rodTip.y,
+        lureX: this.deps.lure.x,
+        lureY: this.deps.lure.y,
+      })
       this.deps.lure.update(dtSec, {
         reeling: this.deps.input.isReeling,
-        maxDepth: this.deps.stats.maxDepth * this.currentCastDepthFactor,
+        reelTargetX: rodTip.x,
+        reelTargetY: rodTip.y,
+        maxReachY: lineConstraint.maxReachY,
+        isTaut: lineConstraint.isTaut,
         reelSpeedMultiplier: this.deps.stats.reelSpeedMultiplier,
       })
       this.handleWaterEntry()
     }
 
     const fishing = this.enteredWater && this.deps.lure.isActive
-    this.deps.spawn.update(dtSec, { lureUnderwater: fishing, maxDepth: this.deps.stats.maxDepth })
+    this.deps.spawn.update(dtSec, {
+      lureUnderwater: fishing,
+      maxDepth: fishing ? this.linePayout.currentLineLengthCap : this.deps.stats.maxDepth,
+    })
 
     if (fishing) {
       this.handleHooking(dtSec)
@@ -104,10 +121,10 @@ export class FishingStateMachine {
     }
   }
 
-  /** Fires the lure on release; hold time sets launch speed + depth reach. */
+  /** Fires the lure on release; hold time sets launch speed + line payout profile. */
   private releaseCast(holdMs: number): void {
     const solution = CastPower.resolve(holdMs, this.deps.stats.castPowerMultiplier)
-    this.currentCastDepthFactor = solution.depthFactor
+    this.linePayout.beginCast(solution.power01, this.deps.stats.maxDepth)
     this.enteredWater = false
     this.deps.camera.setMode(CameraMode.Casting)
 
@@ -176,7 +193,7 @@ export class FishingStateMachine {
 
     this.deps.lure.dock()
     this.enteredWater = false
-    this.currentCastDepthFactor = 1
+    this.linePayout.reset()
     this.deps.camera.setMode(CameraMode.LandingCatch)
     this.setState(FishingState.IdleAtSurface)
   }

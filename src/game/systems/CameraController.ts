@@ -82,12 +82,22 @@ export class CameraController {
    * screen ratio, horizontally centered on where the surface character stands.
    * `smooth` pans (used when returning from a deep cast); otherwise snaps.
    */
+  /** Re-apply surface framing (e.g. after scale/layout settles on boot). */
+  refreshSurfaceFrame(): void {
+    if (this.isFollowMode(this.mode)) {
+      return
+    }
+    this.frameSurface(false)
+  }
+
   private frameSurface(smooth: boolean): void {
     this.camera.stopFollow()
     const centerX = WorldConfig.surfaceAnchorX
+    const viewHeight = this.camera.height
     const centerY =
       WorldConfig.waterlineY +
-      WorldConfig.viewHeight * (0.5 - CameraConfig.restWaterlineScreenRatio)
+      viewHeight * (0.5 - CameraConfig.restWaterlineScreenRatio) +
+      CameraConfig.restOffsetYWorld
 
     if (!smooth) {
       this.camera.centerOn(centerX, centerY)

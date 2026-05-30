@@ -61,6 +61,17 @@ export class WorldScene extends Phaser.Scene {
       hook: new HookCollisionSystem(),
       economy: this.economy,
     })
+
+    // Re-frame once layout/scale is settled so idle start shows horse + surface.
+    this.time.delayedCall(0, () => this.cameraController.refreshSurfaceFrame())
+    this.scale.on(Phaser.Scale.Events.RESIZE, this.handleViewportResize, this)
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.scale.off(Phaser.Scale.Events.RESIZE, this.handleViewportResize, this)
+    })
+  }
+
+  private handleViewportResize(): void {
+    this.cameraController.refreshSurfaceFrame()
   }
 
   update(_time: number, deltaMs: number): void {

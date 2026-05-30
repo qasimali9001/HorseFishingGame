@@ -10,8 +10,13 @@ export type LureMode = 'docked' | 'airborne' | 'sinking' | 'reeling' | 'hanging'
 /** Per-frame inputs to the lure's motion (composed by the fishing system). */
 export interface LureUpdateContext {
   reeling: boolean
-  /** Effective max depth (world units below waterline) from PlayerStats. */
-  maxDepth: number
+  /** Rod tip world position used as reel-in target. */
+  reelTargetX: number
+  reelTargetY: number
+  /** Max world Y reachable this frame from line-length constraint. */
+  maxReachY: number
+  /** Whether the line is currently taut at the lure position. */
+  isTaut: boolean
   /** Reel-up speed multiplier from PlayerStats. */
   reelSpeedMultiplier: number
 }
@@ -94,7 +99,7 @@ export class Lure {
 
   /**
    * Integrates one frame. `reeling` only matters underwater; airborne flight
-   * ignores it. The lure sinks until it reaches `ctx.maxDepth`, then hangs on a
+   * ignores it. The lure sinks until it reaches `ctx.maxReachY`, then hangs on a
    * taut line (gentle bob/sway) until reeled. Callers read `y`/`depth`/`mode`.
    */
   update(dtSec: number, ctx: LureUpdateContext): void {
@@ -102,7 +107,11 @@ export class Lure {
       return
     }
 
-    const limitY = WorldConfig.waterlineY + Math.min(ctx.maxDepth, WorldConfig.maxDepth)
+    const limitY = Phaser.Math.Clamp(
+      ctx.maxReachY,
+      WorldConfig.waterlineY,
+      WorldConfig.waterlineY + WorldConfig.maxDepth,
+    )
 
     if (this.modeValue === 'airborne') {
       // Airborne the lure arcs through the sky (y < 0 is above water), so the
@@ -118,14 +127,30 @@ export class Lure {
 
     if (ctx.reeling) {
       this.modeValue = 'reeling'
-      this.vy = -LureMotionConfig.reelUpVelocity * ctx.reelSpeedMultiplier
+      const dx = ctx.reelTargetX - this.sprite.x
+      const dy = ctx.reelTargetY - this.sprite.y
+      const distance = Math.hypot(dx, dy)
+      if (distance > 0.001) {
+        const pullSpeed = LureMotionConfig.reelUpVelocity * ctx.reelSpeedMultiplier
+        const desiredVx = (dx / distance) * pullSpeed
+        const desiredVy = (dy / distance) * pullSpeed
+        const steerAlpha =
+          1 - Math.pow(1 - LureMotionConfig.reelDirectionResponse, dtSec * 60)
+        this.vx = Phaser.Math.Linear(this.vx, desiredVx, steerAlpha)
+        this.vy = Phaser.Math.Linear(this.vy, desiredVy, steerAlpha)
+      } else {
+        this.vx = 0
+        this.vy = 0
+      }
+
+      // Keep some decaying carry while reeling so it doesn't feel rigid.
       this.vx *= Math.pow(LureMotionConfig.horizontalMomentumRetentionWhileReeling, dtSec * 60)
       this.integrate(dtSec, limitY)
       return
     }
 
     // Not reeling: sink until the line runs out, then hang.
-    const atLimit = this.sprite.y >= limitY - 0.5
+    const atLimit = ctx.isTaut
     if (atLimit) {
       this.hang(dtSec, limitY)
       return
