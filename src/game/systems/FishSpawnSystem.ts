@@ -3,6 +3,7 @@ import { Fish } from '../entities/Fish'
 import { FISH_DATA } from '../data/fishData'
 import { FishConfig } from '../config/FishConfig'
 import { WorldConfig, worldRightX } from '../config/WorldConfig'
+import type { BiomeSystem } from './BiomeSystem'
 import type { FishDefinition } from '../types/FishTypes'
 
 export interface SpawnContext {
@@ -16,14 +17,18 @@ export interface SpawnContext {
  * Maintains the live fish population around the camera view. Fish swim in from
  * just offscreen, cross the visible area, and despawn once well past it, so we
  * only ever pay for a handful of fish near gameplay regardless of world size.
+ * Spawn eligibility is gated by depth AND biome (see BiomeSystem). Movement is
+ * owned by FishAISystem -- this system only manages the population.
  */
 export class FishSpawnSystem {
   private readonly scene: Phaser.Scene
+  private readonly biomes: BiomeSystem
   private readonly fish: Fish[] = []
   private spawnTimer = 0
 
-  constructor(scene: Phaser.Scene) {
+  constructor(scene: Phaser.Scene, biomes: BiomeSystem) {
     this.scene = scene
+    this.biomes = biomes
   }
 
   get list(): readonly Fish[] {
@@ -31,9 +36,6 @@ export class FishSpawnSystem {
   }
 
   update(dtSec: number, ctx: SpawnContext): void {
-    for (const f of this.fish) {
-      f.update(dtSec)
-    }
     this.despawnOffscreen()
 
     this.spawnTimer += dtSec * 1000
@@ -47,7 +49,7 @@ export class FishSpawnSystem {
     }
   }
 
-  /** Removes a specific fish (e.g. once landed). */
+  /** Removes a specific fish (e.g. once landed or stolen by a predator). */
   remove(target: Fish): void {
     const i = this.fish.indexOf(target)
     if (i !== -1) {
@@ -78,7 +80,13 @@ export class FishSpawnSystem {
       return
     }
 
-    const candidates = FISH_DATA.filter((d) => d.minDepth <= hiDepth && d.maxDepth >= loDepth)
+    // Only species native to the biome(s) on screen, and within the depth band.
+    const allowedIds = new Set(
+      this.biomes.biomesInRange(loDepth, hiDepth).flatMap((b) => b.fishIds),
+    )
+    const candidates = FISH_DATA.filter(
+      (d) => d.minDepth <= hiDepth && d.maxDepth >= loDepth && allowedIds.has(d.id),
+    )
     if (candidates.length === 0) {
       return
     }

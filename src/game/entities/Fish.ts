@@ -1,13 +1,15 @@
 import Phaser from 'phaser'
 import { FishConfig } from '../config/FishConfig'
+import { WorldConfig } from '../config/WorldConfig'
 import type { FishDefinition } from '../types/FishTypes'
 
 export type FishMode = 'swimming' | 'hooked'
 
 /**
- * One fish. Owns its own visual + swim pose. While swimming it drifts
- * horizontally with a soft vertical wobble; once hooked it follows the lure.
- * It knows nothing about spawning rules, collision, or economy.
+ * One fish. Owns its own visual + swim pose + movement integration. While
+ * swimming it drifts horizontally with a soft vertical wobble; FishAISystem may
+ * steer it toward bait (see `applySteer`); once hooked it follows
+ * the lure. It knows nothing about spawning rules, collision, or economy.
  */
 export class Fish {
   readonly def: FishDefinition
@@ -15,14 +17,17 @@ export class Fish {
   private readonly facing: Phaser.GameObjects.Container
   private modeValue: FishMode = 'swimming'
   private vx: number
-  private readonly baseY: number
+  /** Chosen base swim speed magnitude (used by AI steering scales). */
+  private readonly swimSpeedValue: number
+  private baseY: number
   private wobbleTime = Math.random() * Math.PI * 2
+  private hangTime = 0
 
   constructor(scene: Phaser.Scene, def: FishDefinition, x: number, y: number, dir: 1 | -1) {
     this.def = def
     this.baseY = y
-    const speed = Phaser.Math.Between(def.speedMin, def.speedMax)
-    this.vx = speed * dir
+    this.swimSpeedValue = Phaser.Math.Between(def.speedMin, def.speedMax)
+    this.vx = this.swimSpeedValue * dir
 
     // `facing` holds the art (drawn pointing right) so we can flip via scaleX.
     this.facing = scene.add.container(0, 0)
@@ -61,6 +66,11 @@ export class Fish {
     return this.def.value
   }
 
+  /** Base swim speed magnitude (world units / second). */
+  get swimSpeed(): number {
+    return this.swimSpeedValue
+  }
+
   get isHooked(): boolean {
     return this.modeValue === 'hooked'
   }
@@ -71,6 +81,24 @@ export class Fish {
 
   setHooked(): void {
     this.modeValue = 'hooked'
+    this.hangTime = 0
+    this.container.setDepth(FishConfig.hookedRenderDepth)
+  }
+
+  /**
+   * Apply AI steering for one frame. `steerAlpha` is the already dt-adjusted
+   * lerp weight; `baseYDelta` shifts the swim line vertically (clamped to water).
+   */
+  applySteer(desiredVx: number, steerAlpha: number, baseYDelta: number): void {
+    if (this.modeValue !== 'swimming') {
+      return
+    }
+    this.vx = Phaser.Math.Linear(this.vx, desiredVx, steerAlpha)
+    this.baseY = Phaser.Math.Clamp(
+      this.baseY + baseYDelta,
+      WorldConfig.waterlineY + 8,
+      WorldConfig.waterlineY + WorldConfig.maxDepth,
+    )
   }
 
   /** Swimming movement for one frame. */
@@ -84,12 +112,24 @@ export class Fish {
     this.facing.scaleX = this.vx >= 0 ? 1 : -1
   }
 
-  /** Hooked fish eases toward the lure each frame. */
+  /** Hooked fish eases to the hook point and hangs nose-down off it. */
   followLure(lureX: number, lureY: number, dtSec: number): void {
+    const pose = FishConfig.hookedPose
     const t = 1 - Math.pow(1 - FishConfig.hookedFollowLerp, dtSec * 60)
-    this.container.x = Phaser.Math.Linear(this.container.x, lureX, t)
-    this.container.y = Phaser.Math.Linear(this.container.y, lureY, t)
-    this.facing.scaleX = lureX >= this.container.x ? 1 : -1
+
+    const hookX = lureX + pose.hookOffsetX
+    const hookY = lureY + pose.hookOffsetY
+    const mouthLead = this.def.radius * pose.mouthLeadRadiusScale
+    const targetX = hookX
+    const targetY = hookY - mouthLead
+
+    this.container.x = Phaser.Math.Linear(this.container.x, targetX, t)
+    this.container.y = Phaser.Math.Linear(this.container.y, targetY, t)
+
+    this.hangTime += dtSec
+    const sway = Math.sin(this.hangTime * pose.hangSwaySpeed) * pose.hangSwayDeg
+    this.facing.setAngle(pose.rotationDeg + sway)
+    this.facing.scaleX = 1
   }
 
   destroy(): void {

@@ -9,7 +9,10 @@ import { CastPowerBar } from '../entities/CastPowerBar'
 import { FishingLine } from '../entities/FishingLine'
 import { InputSystem } from '../systems/InputSystem'
 import { PlayerStats } from '../systems/PlayerStats'
+import { BiomeSystem } from '../systems/BiomeSystem'
 import { FishSpawnSystem } from '../systems/FishSpawnSystem'
+import { FishAISystem } from '../systems/FishAISystem'
+import { PredatorSystem } from '../systems/PredatorSystem'
 import { HookCollisionSystem } from '../systems/HookCollisionSystem'
 import { EconomySystem } from '../systems/EconomySystem'
 import { FishingStateMachine } from '../systems/FishingStateMachine'
@@ -29,7 +32,10 @@ export class WorldScene extends Phaser.Scene {
   private line!: FishingLine
   private inputSystem!: InputSystem
   private stats!: PlayerStats
+  private biomes!: BiomeSystem
   private spawn!: FishSpawnSystem
+  private fishAI!: FishAISystem
+  private predators!: PredatorSystem
   private economy!: EconomySystem
   private fishing!: FishingStateMachine
 
@@ -47,7 +53,10 @@ export class WorldScene extends Phaser.Scene {
     this.line = new FishingLine(this)
     this.inputSystem = new InputSystem(this)
     this.stats = new PlayerStats(this.horse)
-    this.spawn = new FishSpawnSystem(this)
+    this.biomes = new BiomeSystem()
+    this.spawn = new FishSpawnSystem(this, this.biomes)
+    this.fishAI = new FishAISystem()
+    this.predators = new PredatorSystem(this, this.biomes)
     this.economy = new EconomySystem()
 
     this.fishing = new FishingStateMachine({
@@ -58,6 +67,9 @@ export class WorldScene extends Phaser.Scene {
       input: this.inputSystem,
       stats: this.stats,
       spawn: this.spawn,
+      fishAI: this.fishAI,
+      predators: this.predators,
+      biomes: this.biomes,
       hook: new HookCollisionSystem(),
       economy: this.economy,
     })

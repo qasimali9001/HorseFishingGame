@@ -10,6 +10,9 @@ import { LinePayoutController } from './LinePayoutController'
 import type { InputSystem } from './InputSystem'
 import type { PlayerStats } from './PlayerStats'
 import type { FishSpawnSystem } from './FishSpawnSystem'
+import type { FishAISystem } from './FishAISystem'
+import type { PredatorSystem } from './PredatorSystem'
+import type { BiomeSystem } from './BiomeSystem'
 import type { HookCollisionSystem } from './HookCollisionSystem'
 import type { EconomySystem } from './EconomySystem'
 import type { CastPowerBar } from '../entities/CastPowerBar'
@@ -25,6 +28,9 @@ export interface FishingDeps {
   castPowerBar: CastPowerBar
   stats: PlayerStats
   spawn: FishSpawnSystem
+  fishAI: FishAISystem
+  predators: PredatorSystem
+  biomes: BiomeSystem
   hook: HookCollisionSystem
   economy: EconomySystem
 }
@@ -84,16 +90,49 @@ export class FishingStateMachine {
     }
 
     const fishing = this.enteredWater && this.deps.lure.isActive
-    this.deps.spawn.update(dtSec, {
-      lureUnderwater: fishing,
-      maxDepth: fishing ? this.linePayout.currentLineLengthCap : this.deps.stats.maxDepth,
+    const spawnDepth = fishing ? this.linePayout.currentLineLengthCap : this.deps.stats.maxDepth
+
+    if (fishing) {
+      this.deps.biomes.update(this.deps.lure.depth)
+    }
+
+    this.deps.spawn.update(dtSec, { lureUnderwater: fishing, maxDepth: spawnDepth })
+    this.deps.fishAI.update(dtSec, this.deps.spawn.list, {
+      lureX: this.deps.lure.x,
+      lureY: this.deps.lure.y,
+      lureActive: fishing,
     })
 
     if (fishing) {
       this.handleHooking(dtSec)
+    }
+
+    // Predators chase the hooked fish; a successful steal resolves CatchLost.
+    const stoleCatch = this.deps.predators.update(dtSec, {
+      hookedFish: this.hookedFish,
+      canSpawn: fishing,
+      maxDepth: spawnDepth,
+    })
+    if (stoleCatch) {
+      this.loseCatch()
+    }
+
+    if (fishing) {
       this.updateUnderwaterState()
       this.checkLanding()
     }
+  }
+
+  /** A predator stole the hooked fish: announce it and drop the catch. */
+  private loseCatch(): void {
+    const fish = this.hookedFish
+    if (!fish) {
+      return
+    }
+    EventBus.emit(GameEvents.CATCH_LOST, { fishId: fish.def.id, displayName: fish.def.displayName })
+    this.deps.spawn.remove(fish)
+    this.hookedFish = null
+    this.setState(FishingState.CatchLost)
   }
 
   /**
@@ -194,6 +233,7 @@ export class FishingStateMachine {
     this.deps.lure.dock()
     this.enteredWater = false
     this.linePayout.reset()
+    this.deps.biomes.reset()
     this.deps.camera.setMode(CameraMode.LandingCatch)
     this.setState(FishingState.IdleAtSurface)
   }

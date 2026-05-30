@@ -20,6 +20,14 @@ interface CatchPayload {
   value: number
 }
 
+interface CatchLostPayload {
+  displayName: string
+}
+
+interface BiomeChangedPayload {
+  displayName: string
+}
+
 /**
  * Screen-fixed UI. Its own camera never scrolls, so HUD elements use plain
  * screen coordinates here (this is the one place that's correct). Reacts to
@@ -29,6 +37,7 @@ export class UIScene extends Phaser.Scene {
   private debugText?: Phaser.GameObjects.Text
   private moneyText?: Phaser.GameObjects.Text
   private catchText?: Phaser.GameObjects.Text
+  private biomeText?: Phaser.GameObjects.Text
 
   constructor() {
     super(SceneKeys.UI)
@@ -37,6 +46,7 @@ export class UIScene extends Phaser.Scene {
   create(): void {
     this.createMoneyDisplay()
     this.createCatchNotifier()
+    this.createBiomeBanner()
 
     if (DebugConfig.showOverlay) {
       this.createDebugOverlay()
@@ -73,24 +83,62 @@ export class UIScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setAlpha(0)
 
-    const onCatch = (p: CatchPayload) => this.showCatch(p)
+    const onCatch = (p: CatchPayload) => this.showNotice(`Caught ${p.displayName}!  +$${p.value}`, '#d6fff0')
+    const onLost = (p: CatchLostPayload) => this.showNotice(`${p.displayName} got away!`, '#ffd0d0')
     EventBus.on(GameEvents.CATCH_LANDED, onCatch)
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => EventBus.off(GameEvents.CATCH_LANDED, onCatch))
+    EventBus.on(GameEvents.CATCH_LOST, onLost)
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      EventBus.off(GameEvents.CATCH_LANDED, onCatch)
+      EventBus.off(GameEvents.CATCH_LOST, onLost)
+    })
   }
 
-  private showCatch(p: CatchPayload): void {
+  private showNotice(message: string, color: string): void {
     if (!this.catchText) {
       return
     }
     this.tweens.killTweensOf(this.catchText)
     const baseY = this.scale.height * 0.28
-    this.catchText.setText(`Caught ${p.displayName}!  +$${p.value}`).setAlpha(1).setY(baseY)
+    this.catchText.setColor(color).setText(message).setAlpha(1).setY(baseY)
     this.tweens.add({
       targets: this.catchText,
       y: baseY - 40,
       alpha: 0,
       delay: 900,
       duration: 700,
+      ease: 'Sine.easeIn',
+    })
+  }
+
+  private createBiomeBanner(): void {
+    this.biomeText = this.add
+      .text(this.scale.width / 2, this.scale.height * 0.12, '', {
+        color: '#cfeffb',
+        fontSize: '18px',
+        fontFamily: 'monospace',
+        backgroundColor: '#0c2b3aaa',
+        padding: { x: 10, y: 6 },
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setAlpha(0)
+
+    const onBiome = (p: BiomeChangedPayload) => this.showBiome(p.displayName)
+    EventBus.on(GameEvents.BIOME_CHANGED, onBiome)
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => EventBus.off(GameEvents.BIOME_CHANGED, onBiome))
+  }
+
+  private showBiome(displayName: string): void {
+    if (!this.biomeText) {
+      return
+    }
+    this.tweens.killTweensOf(this.biomeText)
+    this.biomeText.setText(displayName).setAlpha(1)
+    this.tweens.add({
+      targets: this.biomeText,
+      alpha: 0,
+      delay: 1400,
+      duration: 600,
       ease: 'Sine.easeIn',
     })
   }

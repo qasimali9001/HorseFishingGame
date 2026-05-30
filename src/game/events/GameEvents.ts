@@ -6,6 +6,10 @@ export const GameEvents = {
   FISH_HOOKED: 'fish-hooked',
   /** A hooked fish reached the surface and was landed. payload: { fishId, value } */
   CATCH_LANDED: 'catch-landed',
+  /** A predator stole the hooked fish before landing. payload: { fishId, displayName } */
+  CATCH_LOST: 'catch-lost',
+  /** The lure entered a new depth biome. payload: { biomeId, displayName } */
+  BIOME_CHANGED: 'biome-changed',
   /** Player money changed. payload: { money } */
   MONEY_CHANGED: 'money-changed',
   /** Camera mode changed (debug/diagnostics). payload: { mode } */

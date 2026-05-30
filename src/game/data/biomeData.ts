@@ -1,0 +1,81 @@
+import type { BiomeDefinition } from '../types/BiomeTypes'
+
+/**
+ * Vertical depth biomes, surface -> deep. Ordered and contiguous by depth so a
+ * lure depth maps to exactly one biome. The world gets stranger and darker the
+ * deeper you go. Ranges are world units below the waterline.
+ */
+export const BIOME_DATA: readonly BiomeDefinition[] = [
+  {
+    id: 'sunny-shores',
+    displayName: 'Sunny Shores',
+    minDepth: 0,
+    maxDepth: 500,
+    backgroundColorTop: 0x8ecae6,
+    backgroundColorBottom: 0x2f93b8,
+    fogOpacity: 0.0,
+    lightMultiplier: 1.0,
+    fishIds: ['pebble-minnow', 'sun-perch'],
+    propIds: ['reed', 'pebble'],
+  },
+  {
+    id: 'kelp-forest',
+    displayName: 'Kelp Forest',
+    minDepth: 500,
+    maxDepth: 1000,
+    backgroundColorTop: 0x2f93b8,
+    backgroundColorBottom: 0x16637e,
+    fogOpacity: 0.1,
+    lightMultiplier: 0.85,
+    fishIds: ['sun-perch', 'kelp-darter', 'deep-gulper'],
+    propIds: ['kelp', 'rock'],
+  },
+  {
+    id: 'twilight-waters',
+    displayName: 'Twilight Waters',
+    minDepth: 1000,
+    maxDepth: 1800,
+    backgroundColorTop: 0x16637e,
+    backgroundColorBottom: 0x0c3b52,
+    fogOpacity: 0.22,
+    lightMultiplier: 0.6,
+    fishIds: ['deep-gulper', 'lantern-drifter'],
+    propIds: ['spire', 'driftwood'],
+  },
+  {
+    id: 'midnight-trench',
+    displayName: 'Midnight Trench',
+    minDepth: 1800,
+    maxDepth: 2700,
+    backgroundColorTop: 0x0c3b52,
+    backgroundColorBottom: 0x06222f,
+    fogOpacity: 0.34,
+    lightMultiplier: 0.4,
+    fishIds: ['lantern-drifter'],
+    propIds: ['vent', 'bone'],
+  },
+  {
+    id: 'industrial-graveyard',
+    displayName: 'Industrial Graveyard',
+    minDepth: 2700,
+    maxDepth: 3400,
+    backgroundColorTop: 0x06222f,
+    backgroundColorBottom: 0x0a1a20,
+    fogOpacity: 0.45,
+    lightMultiplier: 0.28,
+    fishIds: ['lantern-drifter'],
+    propIds: ['wreck', 'pipe', 'sign'],
+  },
+  {
+    id: 'the-maw',
+    displayName: 'The Maw',
+    minDepth: 3400,
+    maxDepth: 4000,
+    backgroundColorTop: 0x0a1a20,
+    backgroundColorBottom: 0x050b0e,
+    fogOpacity: 0.58,
+    lightMultiplier: 0.16,
+    fishIds: [],
+    propIds: ['teeth', 'eye'],
+  },
+] as const

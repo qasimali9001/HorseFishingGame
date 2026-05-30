@@ -17,6 +17,45 @@ export const FishConfig = {
   /** How quickly a hooked fish snaps to the lure (per 1/60s). */
   hookedFollowLerp: 0.25,
 
-  /** Render depth so fish sit behind the line + lure but above the backdrop. */
+  /** Render depth while swimming (behind lure/line). */
   renderDepth: 5,
+  /** Render depth while hooked so the fish reads on the hook. */
+  hookedRenderDepth: 10,
+
+  /**
+   * Hooked pose relative to the lure anchor (bobber eyelet). The fish mouth
+   * meets the hook and the body hangs nose-down.
+   */
+  hookedPose: {
+    /** Hook position offset from lure world position. */
+    hookOffsetX: 0,
+    hookOffsetY: 34,
+    /** How far the fish mouth sits from its body center (along the head axis). */
+    mouthLeadRadiusScale: 0.72,
+    /** Nose-down hang angle (fish art points right at 0 deg). */
+    rotationDeg: 92,
+    /** Gentle idle sway while dangling. */
+    hangSwayDeg: 5,
+    hangSwaySpeed: 1.6,
+  },
+
+  /** Simple bait attraction driven by FishAISystem. Bigger fish react harder. */
+  baitAttraction: {
+    /** Base lure proximity (world units) in which fish start to care. */
+    baseRadius: 230,
+    /** Extra reaction radius per fish radius unit. */
+    radiusPerFishSize: 5,
+    /** Minimum attraction speed multiplier for tiny fish. */
+    minSpeedScale: 0.45,
+    /** Maximum attraction speed multiplier for larger/aggressive fish. */
+    maxSpeedScale: 1.25,
+    /** Fish radius range used to normalize aggression. */
+    minAggressiveRadius: 10,
+    maxAggressiveRadius: 28,
+    /** Horizontal velocity steering toward the bait (per 1/60s). */
+    steerResponse: 0.045,
+    /** Vertical attraction speed range (world units / second). */
+    minVerticalSpeed: 18,
+    maxVerticalSpeed: 70,
+  },
 } as const
