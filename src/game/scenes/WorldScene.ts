@@ -5,7 +5,7 @@ import { DebugWorldGrid } from '../world/DebugWorldGrid'
 import { CameraController } from '../systems/CameraController'
 import { PlayerHorse } from '../entities/PlayerHorse'
 import { Lure } from '../entities/Lure'
-import { CastAngleTracker } from '../entities/CastAngleTracker'
+import { CastPowerBar } from '../entities/CastPowerBar'
 import { FishingLine } from '../entities/FishingLine'
 import { InputSystem } from '../systems/InputSystem'
 import { PlayerStats } from '../systems/PlayerStats'
@@ -25,7 +25,7 @@ export class WorldScene extends Phaser.Scene {
   private cameraController!: CameraController
   private horse!: PlayerHorse
   private lure!: Lure
-  private castTracker!: CastAngleTracker
+  private castPowerBar!: CastPowerBar
   private line!: FishingLine
   private inputSystem!: InputSystem
   private stats!: PlayerStats
@@ -43,7 +43,7 @@ export class WorldScene extends Phaser.Scene {
     this.cameraController = new CameraController(this)
     this.horse = new PlayerHorse(this, WorldConfig.surfaceAnchorX, WorldConfig.waterlineY)
     this.lure = new Lure(this)
-    this.castTracker = new CastAngleTracker(this)
+    this.castPowerBar = new CastPowerBar(this)
     this.line = new FishingLine(this)
     this.inputSystem = new InputSystem(this)
     this.stats = new PlayerStats(this.horse)
@@ -53,7 +53,7 @@ export class WorldScene extends Phaser.Scene {
     this.fishing = new FishingStateMachine({
       horse: this.horse,
       lure: this.lure,
-      castTracker: this.castTracker,
+      castPowerBar: this.castPowerBar,
       camera: this.cameraController,
       input: this.inputSystem,
       stats: this.stats,

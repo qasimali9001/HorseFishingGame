@@ -107,7 +107,7 @@ export class UIScene extends Phaser.Scene {
       .setScrollFactor(0)
 
     this.add
-      .text(16, this.scale.height - 28, 'Click to cast  ·  hold to reel  ·  release to stop', {
+      .text(16, this.scale.height - 28, 'Hold + release to cast  ·  hold to reel  ·  release to stop', {
         color: '#9fd6e6',
         fontSize: '13px',
         fontFamily: 'monospace',

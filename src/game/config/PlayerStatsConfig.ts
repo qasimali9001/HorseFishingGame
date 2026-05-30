@@ -9,7 +9,7 @@
  */
 export const PlayerStatsConfig = {
   /** Reachable depth (world units below the waterline) with the starter rod. */
-  baseMaxDepth: 1100,
+  baseMaxDepth: 300,
   /** Multiplier applied to the lure's base reel-up speed. */
   baseReelSpeedMultiplier: 1,
   /** Multiplier applied to cast launch velocity. */

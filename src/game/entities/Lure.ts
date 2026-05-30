@@ -31,10 +31,6 @@ export class Lure {
   /** While hanging: the X the lure sways around, and a time accumulator. */
   private hangAnchorX = 0
   private hangTime = 0
-  /** A failed (tap) cast: pops up, never fishes; the FSM aborts it. */
-  private failedCast = false
-  /** Y the cast launched from, so a failed cast knows when it has flopped back. */
-  private launchY = 0
 
   constructor(scene: Phaser.Scene) {
     this.sprite = scene.add
@@ -70,32 +66,15 @@ export class Lure {
     return this.modeValue !== 'docked'
   }
 
-  /** True while a failed (tap) cast is in the air; the FSM aborts it on flop-back. */
-  get isFailedCast(): boolean {
-    return this.failedCast
-  }
-
   /**
-   * Fires the lure out of the rod tip at `speed` (world units/sec) along
-   * `angleDeg` elevation above horizontal (forward = +x, up = -y). Gravity then
-   * arcs it. `failed` marks a tap cast that should never enter the water.
+   * Fires the lure out of the rod tip with explicit world-space velocity
+   * components. Gravity then arcs it until water entry.
    */
-  launch(fromX: number, fromY: number, speed: number, angleDeg: number, failed: boolean): void {
-    const rad = Phaser.Math.DegToRad(angleDeg)
+  launch(fromX: number, fromY: number, velocityX: number, velocityY: number): void {
     this.sprite.setPosition(fromX, fromY).setVisible(true)
-    this.vx = Math.cos(rad) * speed
-    this.vy = -Math.sin(rad) * speed
+    this.vx = velocityX
+    this.vy = velocityY
     this.modeValue = 'airborne'
-    this.failedCast = failed
-    this.launchY = fromY
-  }
-
-  /**
-   * For a failed cast: true once it has arced back down past its launch height,
-   * so the FSM can dock it and return to idle (it never enters the water).
-   */
-  failedCastFinished(): boolean {
-    return this.failedCast && this.modeValue === 'airborne' && this.vy > 0 && this.sprite.y >= this.launchY
   }
 
   /** Called when the lure crosses the waterline going down. */
@@ -105,12 +84,11 @@ export class Lure {
     }
   }
 
-  /** Reset to the rod (hidden) after a landing or a failed-cast flop. */
+  /** Reset to the rod (hidden) after a landing. */
   dock(): void {
     this.modeValue = 'docked'
     this.vx = 0
     this.vy = 0
-    this.failedCast = false
     this.sprite.setVisible(false)
   }
 

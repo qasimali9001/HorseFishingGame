@@ -1,17 +1,17 @@
 import { FishingState } from '../types/GameStateTypes'
 import { WorldConfig } from '../config/WorldConfig'
 import { FishingConfig } from '../config/FishingConfig'
-import { CastChargeConfig } from '../config/CastChargeConfig'
 import { EventBus } from '../events/EventBus'
 import { GameEvents } from '../events/GameEvents'
 import { CameraController, CameraMode } from './CameraController'
-import { CastCharge } from './CastCharge'
+import { CastPowerConfig } from '../config/CastPowerConfig'
+import { CastPower } from './CastPower'
 import type { InputSystem } from './InputSystem'
 import type { PlayerStats } from './PlayerStats'
 import type { FishSpawnSystem } from './FishSpawnSystem'
 import type { HookCollisionSystem } from './HookCollisionSystem'
 import type { EconomySystem } from './EconomySystem'
-import type { CastAngleTracker } from '../entities/CastAngleTracker'
+import type { CastPowerBar } from '../entities/CastPowerBar'
 import type { PlayerHorse } from '../entities/PlayerHorse'
 import type { Lure } from '../entities/Lure'
 import type { Fish } from '../entities/Fish'
@@ -21,7 +21,7 @@ export interface FishingDeps {
   lure: Lure
   camera: CameraController
   input: InputSystem
-  castTracker: CastAngleTracker
+  castPowerBar: CastPowerBar
   stats: PlayerStats
   spawn: FishSpawnSystem
   hook: HookCollisionSystem
@@ -40,6 +40,8 @@ export class FishingStateMachine {
   private hookedFish: Fish | null = null
   /** True between a fresh press (in idle) and its release: the cast is charging. */
   private charging = false
+  /** Scales max reachable depth for the currently active cast. */
+  private currentCastDepthFactor = 1
 
   constructor(private readonly deps: FishingDeps) {
     deps.camera.setFollowTarget(deps.lure.sprite)
@@ -61,14 +63,10 @@ export class FishingStateMachine {
     } else {
       this.deps.lure.update(dtSec, {
         reeling: this.deps.input.isReeling,
-        maxDepth: this.deps.stats.maxDepth,
+        maxDepth: this.deps.stats.maxDepth * this.currentCastDepthFactor,
         reelSpeedMultiplier: this.deps.stats.reelSpeedMultiplier,
       })
-      if (this.deps.lure.isFailedCast) {
-        this.handleFailedCast()
-      } else {
-        this.handleWaterEntry()
-      }
+      this.handleWaterEntry()
     }
 
     const fishing = this.enteredWater && this.deps.lure.isActive
@@ -84,7 +82,7 @@ export class FishingStateMachine {
   /**
    * Charge-cast input. A charge arms ONLY on a fresh press (down-edge) made
    * while idle, so a pointer still held from reeling -- when the lure lands --
-   * cannot auto-fire a cast. Releasing fires the lure at the held angle.
+   * cannot auto-fire a cast. Releasing fires the lure with that charge power.
    */
   private handleChargeInput(pressedDownEdge: boolean): void {
     if (pressedDownEdge && this.state === FishingState.IdleAtSurface) {
@@ -93,40 +91,32 @@ export class FishingStateMachine {
     }
 
     if (this.charging && this.deps.input.isPressed) {
-      const holdMs = Math.min(this.deps.input.currentHoldMs, CastChargeConfig.maxChargeMs)
-      const preview = CastCharge.resolve(holdMs, 1)
-      this.deps.castTracker.show(preview.angleDeg, preview.failed)
+      const holdMs = Math.min(this.deps.input.currentHoldMs, CastPowerConfig.maxChargeMs)
+      const previewPower = CastPower.normalizedPower(holdMs)
+      this.deps.castPowerBar.show(previewPower)
     }
 
     if (this.charging && !this.deps.input.isPressed) {
       const holdMs = this.deps.input.consumeRelease() ?? 0
       this.charging = false
-      this.deps.castTracker.hide()
+      this.deps.castPowerBar.hide()
       this.releaseCast(holdMs)
     }
   }
 
-  /** Fires the lure on release; hold time picks the angle (tap = failed/up). */
+  /** Fires the lure on release; hold time sets launch speed + depth reach. */
   private releaseCast(holdMs: number): void {
-    const solution = CastCharge.resolve(holdMs, this.deps.stats.castPowerMultiplier)
+    const solution = CastPower.resolve(holdMs, this.deps.stats.castPowerMultiplier)
+    this.currentCastDepthFactor = solution.depthFactor
     this.enteredWater = false
     this.deps.camera.setMode(CameraMode.Casting)
 
     this.deps.horse.playCastAnimation(() => {
       const tip = this.deps.horse.getRodTipWorldPosition()
-      this.deps.lure.launch(tip.x, tip.y, solution.speed, solution.angleDeg, solution.failed)
+      this.deps.lure.launch(tip.x, tip.y, solution.velocityX, solution.velocityY)
     })
 
-    this.setState(solution.failed ? FishingState.CastFailed : FishingState.Casting)
-  }
-
-  /** A failed (tap) cast flops up and back; dock it and return to idle. */
-  private handleFailedCast(): void {
-    if (this.deps.lure.failedCastFinished()) {
-      this.deps.lure.dock()
-      this.deps.camera.setMode(CameraMode.SurfaceIdle)
-      this.setState(FishingState.IdleAtSurface)
-    }
+    this.setState(FishingState.Casting)
   }
 
   private handleWaterEntry(): void {
@@ -186,6 +176,7 @@ export class FishingStateMachine {
 
     this.deps.lure.dock()
     this.enteredWater = false
+    this.currentCastDepthFactor = 1
     this.deps.camera.setMode(CameraMode.LandingCatch)
     this.setState(FishingState.IdleAtSurface)
   }

@@ -3,7 +3,6 @@ export enum FishingState {
   IdleAtSurface = 'IdleAtSurface',
   Charging = 'Charging',
   Casting = 'Casting',
-  CastFailed = 'CastFailed',
   Sinking = 'Sinking',
   WaitingForBite = 'WaitingForBite',
   FishHooked = 'FishHooked',
