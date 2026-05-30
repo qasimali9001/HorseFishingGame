@@ -1,7 +1,11 @@
 import Phaser from 'phaser'
 import { SceneKeys } from './SceneKeys'
 import { WorldConfig } from '../config/WorldConfig'
+import { DebugConfig } from '../config/DebugConfig'
 import { DebugWorldGrid } from '../world/DebugWorldGrid'
+import { BackgroundLayer } from '../world/BackgroundLayer'
+import { UnderwaterLayer } from '../world/UnderwaterLayer'
+import { SurfaceLayer } from '../world/SurfaceLayer'
 import { CameraController } from '../systems/CameraController'
 import { PlayerHorse } from '../entities/PlayerHorse'
 import { Lure } from '../entities/Lure'
@@ -44,7 +48,13 @@ export class WorldScene extends Phaser.Scene {
   }
 
   create(): void {
-    new DebugWorldGrid(this)
+    new BackgroundLayer(this)
+    new UnderwaterLayer(this)
+    new SurfaceLayer(this)
+
+    if (DebugConfig.showWorldGrid) {
+      new DebugWorldGrid(this)
+    }
 
     this.cameraController = new CameraController(this)
     this.horse = new PlayerHorse(this, WorldConfig.surfaceAnchorX, WorldConfig.waterlineY)
