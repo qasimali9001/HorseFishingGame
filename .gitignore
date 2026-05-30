@@ -1,10 +1,49 @@
-node_modules
-dist
-*.local
+# Dependencies
+node_modules/
+
+# Build output (Vite / GitHub Pages deploy artifact)
+dist/
+
+# Local env & secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS junk
 .DS_Store
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+
+# Editor / IDE (local only)
+.vscode/
+.idea/
+*.swp
+*~
+
+# Vite / TypeScript cache
+.vite/
+*.tsbuildinfo
+
+# Local overrides
+*.local
+
+# Test coverage
+coverage/
 
 # Design docs stay local (not needed on GitHub / Pages deploy).
 *.md
 
 # Art masters / reference PNGs — runtime copies live in src/assets/horse/.
 ReferenceImages/
+
+# Legacy rod art (game bundles rod_basic_driftwood.png instead).
+src/assets/horse/rod_basic.png
