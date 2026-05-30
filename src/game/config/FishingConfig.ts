@@ -1,11 +1,12 @@
 /** Fishing loop tuning: lure visual, line visual, hook reach, surface thresholds. */
 export const FishingConfig = {
-  /** Lure placeholder visual. */
+  /** Lure visual (textured bobber + hook). */
   lure: {
-    radius: 9,
-    color: 0xffd166,
-    strokeColor: 0x3a2417,
-    strokeWidth: 2,
+    /** Uniform display scale applied to the lure texture. */
+    scale: 0.08,
+    /** Origin (0..1): the bobber's top eyelet, so the line attaches there. */
+    originX: 0.5,
+    originY: 0.12,
   },
 
   /** Hook contact reach (world units) used later for fish collision. */

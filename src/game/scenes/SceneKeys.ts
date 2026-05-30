@@ -4,4 +4,5 @@ export const SceneKeys = {
   Preload: 'PreloadScene',
   World: 'WorldScene',
   UI: 'UIScene',
+  HorseRigTest: 'HorseRigTestScene',
 } as const

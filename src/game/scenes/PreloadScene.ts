@@ -1,9 +1,10 @@
 import Phaser from 'phaser'
 import { SceneKeys } from './SceneKeys'
+import { loadHorseAssets } from '../assets/HorseAssets'
 
 /**
- * Asset loading lives here. The first milestone uses Phaser shapes (no
- * textures), so this currently just launches the World + UI scenes together.
+ * Asset loading lives here. Loads the horse rig textures, then launches the
+ * World + UI scenes together.
  */
 export class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -11,7 +12,7 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   preload(): void {
-    // Placeholder shapes for now -- real textures get loaded here later.
+    loadHorseAssets(this)
   }
 
   create(): void {

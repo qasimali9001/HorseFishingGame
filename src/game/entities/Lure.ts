@@ -2,6 +2,7 @@ import Phaser from 'phaser'
 import { FishingConfig } from '../config/FishingConfig'
 import { LureMotionConfig } from '../config/LureMotionConfig'
 import { WorldConfig, worldRightX } from '../config/WorldConfig'
+import { HorseTextures } from '../assets/HorseAssets'
 
 /** How the lure is currently moving. */
 export type LureMode = 'docked' | 'airborne' | 'sinking' | 'reeling' | 'hanging'
@@ -23,7 +24,7 @@ export interface LureUpdateContext {
  */
 export class Lure {
   /** The visual whose transform IS the lure's world position. */
-  readonly sprite: Phaser.GameObjects.Arc
+  readonly sprite: Phaser.GameObjects.Image
   private vx = 0
   private vy = 0
   private modeValue: LureMode = 'docked'
@@ -37,8 +38,9 @@ export class Lure {
 
   constructor(scene: Phaser.Scene) {
     this.sprite = scene.add
-      .circle(0, 0, FishingConfig.lure.radius, FishingConfig.lure.color)
-      .setStrokeStyle(FishingConfig.lure.strokeWidth, FishingConfig.lure.strokeColor)
+      .image(0, 0, HorseTextures.lure)
+      .setOrigin(FishingConfig.lure.originX, FishingConfig.lure.originY)
+      .setScale(FishingConfig.lure.scale)
       .setDepth(9)
       .setVisible(false)
   }

@@ -1,73 +1,62 @@
+import { HorseTextures } from '../assets/HorseAssets'
+import type { HorseRigLayout } from '../types/HorseTypes'
+
 /**
- * Goofy horse rig tuning. All offsets are LOCAL to the horse, measured in the
- * horse's own space (the horse is placed in the world via WorldConfig). Up is
- * negative Y. The horse faces right, out over the water.
+ * Goofy horse rig tuning, texture-backed. All offsets are LOCAL to the horse
+ * (placed in the world via WorldConfig). Up is negative Y; the horse faces
+ * right, out over the water. Nothing here is a screen coordinate -- the camera
+ * decides where the horse appears on screen (see CameraConfig).
  *
- * Nothing here is a screen coordinate -- the camera decides where the horse
- * appears on screen (see CameraConfig).
+ * These values are dialed in with the rig test scene (`?rig` in the URL). After
+ * tuning, press P in that scene to log the current layout and paste it here.
  */
-export const HorseConfig = {
-  strokeColor: 0x3a2417,
-  strokeWidth: 3,
-
-  /** Body ellipse, centered above the waterline (local origin = standing point). */
+export const HorseConfig: HorseRigLayout = {
+  /** Seated body. Origin at bottom-centre so the seat rests on the waterline. */
   body: {
+    textureKey: HorseTextures.body,
+    originX: 0.5,
+    originY: 1,
     offsetX: 0,
-    offsetY: -70,
-    width: 140,
-    height: 92,
-    color: 0xd98c5f,
+    offsetY: 8,
+    scale: 0.46,
   },
 
-  /** Neck pivot: the point the whole head rotates around (front-top of body). */
+  /** Neck pivot: where the head rotates (front-top of the body). */
   neck: {
-    x: 46,
-    y: -104,
+    x: 76,
+    y: -216,
   },
 
-  /** Head + face parts, all LOCAL to the neck pivot so they rotate together. */
+  /**
+   * Head, child of the neck pivot. Origin sits near the throat/neck base so the
+   * head nods/swings around that joint (not its centre).
+   */
   head: {
-    offsetX: 34,
-    offsetY: -16,
-    width: 74,
-    height: 62,
-    color: 0xe6a172,
-  },
-  snout: {
-    offsetX: 72,
-    offsetY: 4,
-    width: 46,
-    height: 36,
-    color: 0xd98c5f,
-  },
-  ear: {
-    offsetX: 14,
-    offsetY: -48,
-    width: 16,
-    height: 28,
-    color: 0xd98c5f,
-  },
-  eye: {
-    offsetX: 50,
-    offsetY: -20,
-    radius: 6,
-    color: 0x201008,
+    textureKey: HorseTextures.head,
+    originX: 0.46,
+    originY: 0.89,
+    offsetX: 0,
+    offsetY: 0,
+    scale: 0.35,
   },
 
-  /** Mouth attachment point (LOCAL to neck pivot). The rod butt sits here. */
+  /** Mouth attachment point (local to the neck pivot). The rod butt sits here. */
   mouthOffset: {
-    x: 94,
-    y: 10,
+    x: 124,
+    y: -69,
   },
 
-  /** Resting rod angle out of the mouth (degrees; negative = up/back). */
-  restRodAngleDeg: -58,
+  /** Resting rod angle out of the mouth (deg; negative = up/back). */
+  restRodAngleDeg: -10,
+
+  /** Rod display length butt -> tip (local px). */
+  rodLengthPx: 230,
 
   /** Subtle living-idle motion. */
   idle: {
     bobAmplitude: 6,
     bobDurationMs: 1700,
-    headWobbleDeg: 4,
+    headWobbleDeg: 5,
     headWobbleDurationMs: 1500,
   },
 
@@ -76,10 +65,10 @@ export const HorseConfig = {
    * the lure, then recovers to rest. Angles are head-pivot rotations (deg).
    */
   cast: {
-    backBendDeg: -125,
+    backBendDeg: -120,
     windupMs: 420,
-    snapForwardDeg: 38,
+    snapForwardDeg: 40,
     snapMs: 150,
     recoverMs: 520,
   },
-} as const
+}

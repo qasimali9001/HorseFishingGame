@@ -2,3 +2,9 @@ node_modules
 dist
 *.local
 .DS_Store
+
+# Design docs stay local (not needed on GitHub / Pages deploy).
+*.md
+
+# Art masters / reference PNGs — runtime copies live in src/assets/horse/.
+ReferenceImages/
