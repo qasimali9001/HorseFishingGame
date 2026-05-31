@@ -14,11 +14,12 @@ import type { FishAISystem } from './FishAISystem'
 import type { PredatorSystem } from './PredatorSystem'
 import type { BiomeSystem } from './BiomeSystem'
 import type { HookCollisionSystem } from './HookCollisionSystem'
-import type { EconomySystem } from './EconomySystem'
 import type { CastPowerBar } from '../entities/CastPowerBar'
 import type { PlayerHorse } from '../entities/PlayerHorse'
 import type { Lure } from '../entities/Lure'
 import type { Fish } from '../entities/Fish'
+import type { BaitSystem } from './BaitSystem'
+import type { CatchDecisionSystem } from './CatchDecisionSystem'
 
 export interface FishingDeps {
   horse: PlayerHorse
@@ -32,7 +33,8 @@ export interface FishingDeps {
   predators: PredatorSystem
   biomes: BiomeSystem
   hook: HookCollisionSystem
-  economy: EconomySystem
+  bait: BaitSystem
+  catchDecision: CatchDecisionSystem
 }
 
 /**
@@ -47,16 +49,25 @@ export class FishingStateMachine {
   private hookedFish: Fish | null = null
   /** True between a fresh press (in idle) and its release: the cast is charging. */
   private charging = false
+  private sellRequested = false
   /** Owns per-cast line payout and taut-line depth constraints. */
   private readonly linePayout = new LinePayoutController()
 
   constructor(private readonly deps: FishingDeps) {
     deps.camera.setFollowTarget(deps.lure.sprite)
     deps.camera.setMode(CameraMode.SurfaceIdle)
+    deps.lure.setBaitColor(deps.bait.color)
+    EventBus.on(GameEvents.BAIT_CHANGED, this.onBaitChanged)
+    EventBus.on(GameEvents.CATCH_SELL_REQUESTED, this.onSellRequested)
   }
 
   get current(): FishingState {
     return this.state
+  }
+
+  destroy(): void {
+    EventBus.off(GameEvents.BAIT_CHANGED, this.onBaitChanged)
+    EventBus.off(GameEvents.CATCH_SELL_REQUESTED, this.onSellRequested)
   }
 
   update(dtSec: number): void {
@@ -64,9 +75,10 @@ export class FishingStateMachine {
     // is out (i.e. starting a reel) can never linger and auto-arm a charge once
     // the lure docks. Only a fresh press made while idle charges a cast.
     const pressedDownEdge = this.deps.input.consumeDownEdge()
+    const pressedSell = this.deps.input.consumeSellDownEdge() || this.consumeSellRequest()
 
     if (!this.deps.lure.isActive) {
-      this.handleChargeInput(pressedDownEdge)
+      this.handleIdleInput(pressedDownEdge, pressedSell)
     } else {
       const rodTip = this.deps.horse.getRodTipWorldPosition()
       const lineConstraint = this.linePayout.update(dtSec, {
@@ -123,6 +135,12 @@ export class FishingStateMachine {
     }
   }
 
+  private consumeSellRequest(): boolean {
+    const requested = this.sellRequested
+    this.sellRequested = false
+    return requested
+  }
+
   /** A predator stole the hooked fish: announce it and drop the catch. */
   private loseCatch(): void {
     const fish = this.hookedFish
@@ -132,6 +150,9 @@ export class FishingStateMachine {
     EventBus.emit(GameEvents.CATCH_LOST, { fishId: fish.def.id, displayName: fish.def.displayName })
     this.deps.spawn.remove(fish)
     this.hookedFish = null
+    if (this.deps.lure.isActive) {
+      this.deps.lure.setBaitVisible(true)
+    }
     this.setState(FishingState.CatchLost)
   }
 
@@ -140,8 +161,30 @@ export class FishingStateMachine {
    * while idle, so a pointer still held from reeling -- when the lure lands --
    * cannot auto-fire a cast. Releasing fires the lure with that charge power.
    */
+  private handleIdleInput(pressedDownEdge: boolean, pressedSell: boolean): void {
+    if (this.deps.catchDecision.hasPending) {
+      if (pressedSell) {
+        if (this.deps.catchDecision.sellPending('hotkey')) {
+          this.setState(FishingState.IdleAtSurface)
+        }
+        return
+      }
+      if (pressedDownEdge) {
+        this.deps.catchDecision.resolveOnRecast()
+      }
+    }
+    this.handleChargeInput(pressedDownEdge)
+  }
+
+  /**
+   * Charge-cast input. A charge arms ONLY on a fresh press (down-edge) made
+   * while idle, so a pointer still held from reeling -- when the lure lands --
+   * cannot auto-fire a cast. Releasing fires the lure with that charge power.
+   */
   private handleChargeInput(pressedDownEdge: boolean): void {
-    if (pressedDownEdge && this.state === FishingState.IdleAtSurface) {
+    const canChargeFromState =
+      this.state === FishingState.IdleAtSurface || this.state === FishingState.AwaitingCatchDecision
+    if (pressedDownEdge && canChargeFromState) {
       this.charging = true
       this.setState(FishingState.Charging)
     }
@@ -189,12 +232,23 @@ export class FishingStateMachine {
 
   private handleHooking(dtSec: number): void {
     if (this.hookedFish) {
-      this.hookedFish.followLure(this.deps.lure.x, this.deps.lure.y, dtSec)
+      this.hookedFish.followLure(
+        this.deps.lure.x,
+        this.deps.lure.y,
+        dtSec,
+        this.deps.input.isReeling,
+      )
       return
     }
-    const caught = this.deps.hook.findCatch(this.deps.lure, this.deps.spawn.list)
+    const caught = this.deps.hook.findCatch(
+      this.deps.lure,
+      this.deps.spawn.list,
+      (candidate) => this.deps.bait.canHook(candidate.def.requiredBaitTier),
+    )
     if (caught) {
       caught.setHooked()
+      caught.snapToHook(this.deps.lure.x, this.deps.lure.y)
+      this.deps.lure.setBaitVisible(false)
       this.hookedFish = caught
       EventBus.emit(GameEvents.FISH_HOOKED, { fishId: caught.def.id })
     }
@@ -220,12 +274,13 @@ export class FishingStateMachine {
 
     if (this.hookedFish) {
       const fish = this.hookedFish
-      this.deps.economy.sell(fish.value)
       EventBus.emit(GameEvents.CATCH_LANDED, {
         fishId: fish.def.id,
         displayName: fish.def.displayName,
         value: fish.value,
+        sizeTier: fish.def.sizeTier,
       })
+      this.deps.catchDecision.queueFromFish(fish)
       this.deps.spawn.remove(fish)
       this.hookedFish = null
     }
@@ -235,7 +290,11 @@ export class FishingStateMachine {
     this.linePayout.reset()
     this.deps.biomes.reset()
     this.deps.camera.setMode(CameraMode.LandingCatch)
-    this.setState(FishingState.IdleAtSurface)
+    this.setState(
+      this.deps.catchDecision.hasPending
+        ? FishingState.AwaitingCatchDecision
+        : FishingState.IdleAtSurface,
+    )
   }
 
   private stateForLureMode(): FishingState {
@@ -255,5 +314,13 @@ export class FishingStateMachine {
     }
     this.state = next
     EventBus.emit(GameEvents.STATE_CHANGED, { state: next })
+  }
+
+  private readonly onSellRequested = (): void => {
+    this.sellRequested = true
+  }
+
+  private readonly onBaitChanged = (payload: { color: number }): void => {
+    this.deps.lure.setBaitColor(payload.color)
   }
 }

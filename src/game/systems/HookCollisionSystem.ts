@@ -8,9 +8,12 @@ import type { Fish } from '../entities/Fish'
  * null. Stateless -- the state machine decides what to do with the result.
  */
 export class HookCollisionSystem {
-  findCatch(lure: Lure, fish: readonly Fish[]): Fish | null {
+  findCatch(lure: Lure, fish: readonly Fish[], canHook?: (candidate: Fish) => boolean): Fish | null {
     for (const f of fish) {
       if (!f.canBeHooked) {
+        continue
+      }
+      if (canHook && !canHook(f)) {
         continue
       }
       const reach = lure.hookRadius + f.radius

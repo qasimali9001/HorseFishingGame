@@ -141,16 +141,29 @@ export class Fish {
     this.facing.scaleX = this.vx >= 0 ? 1 : -1
   }
 
-  /** Hooked fish eases to the hook point and hangs nose-down off it. */
-  followLure(lureX: number, lureY: number, dtSec: number): void {
+  /** Instantly place mouth on hook (used right when contact happens). */
+  snapToHook(lureX: number, lureY: number): void {
     const pose = FishConfig.hookedPose
-    const t = 1 - Math.pow(1 - FishConfig.hookedFollowLerp, dtSec * 60)
+    const mouthLead = this.def.radius * pose.mouthLeadRadiusScale
+    this.container.x = lureX + pose.hookOffsetX
+    this.container.y = lureY + pose.hookOffsetY + mouthLead
+    this.facing.setAngle(pose.rotationDeg)
+    this.facing.scaleX = 1
+  }
+
+  /** Hooked fish tracks hook; tighter follow while reeling upward. */
+  followLure(lureX: number, lureY: number, dtSec: number, reeling = false): void {
+    const pose = FishConfig.hookedPose
+    const followLerp = reeling
+      ? FishConfig.hookedFollowLerpWhileReeling
+      : FishConfig.hookedFollowLerp
+    const t = 1 - Math.pow(1 - followLerp, dtSec * 60)
 
     const hookX = lureX + pose.hookOffsetX
     const hookY = lureY + pose.hookOffsetY
     const mouthLead = this.def.radius * pose.mouthLeadRadiusScale
     const targetX = hookX
-    const targetY = hookY - mouthLead
+    const targetY = hookY + mouthLead
 
     this.container.x = Phaser.Math.Linear(this.container.x, targetX, t)
     this.container.y = Phaser.Math.Linear(this.container.y, targetY, t)

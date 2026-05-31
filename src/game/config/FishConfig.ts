@@ -14,8 +14,10 @@ export const FishConfig = {
   wobbleAmplitude: 7,
   wobbleSpeed: 2.0,
 
-  /** How quickly a hooked fish snaps to the lure (per 1/60s). */
-  hookedFollowLerp: 0.25,
+  /** Hooked fish follow while dangling (per 1/60s frame). */
+  hookedFollowLerp: 0.45,
+  /** Tight lock to hook while reeling so the catch does not lag behind. */
+  hookedFollowLerpWhileReeling: 0.92,
 
   /** Render depth while swimming (behind lure/line). */
   renderDepth: 5,
@@ -23,8 +25,8 @@ export const FishConfig = {
   hookedRenderDepth: 10,
 
   /**
-   * Hooked pose relative to the lure anchor (bobber eyelet). The fish mouth
-   * meets the hook and the body hangs nose-down.
+   * Hooked pose relative to the lure anchor (bobber eyelet). Mouth meets the
+   * hook; body hangs with tail pointing downward (+y).
    */
   hookedPose: {
     /** Hook position offset from lure world position. */
@@ -32,8 +34,8 @@ export const FishConfig = {
     hookOffsetY: 34,
     /** How far the fish mouth sits from its body center (along the head axis). */
     mouthLeadRadiusScale: 0.72,
-    /** Nose-down hang angle (fish art points right at 0 deg). */
-    rotationDeg: 92,
+    /** Nose-up on hook (fish art points right at 0 deg). */
+    rotationDeg: -90,
     /** Gentle idle sway while dangling. */
     hangSwayDeg: 5,
     hangSwaySpeed: 1.6,

@@ -10,6 +10,8 @@ export const FISH_DATA: readonly FishDefinition[] = [
   {
     id: 'pebble-minnow',
     displayName: 'Pebble Minnow',
+    sizeTier: 'small',
+    requiredBaitTier: 'small',
     color: 0x9ad1e6,
     biomeIds: ['sunny-shores'],
     minDepth: 40,
@@ -24,6 +26,8 @@ export const FISH_DATA: readonly FishDefinition[] = [
   {
     id: 'sun-perch',
     displayName: 'Sun Perch',
+    sizeTier: 'medium',
+    requiredBaitTier: 'medium',
     color: 0xf4a259,
     biomeIds: ['sunny-shores', 'kelp-forest'],
     minDepth: 300,
@@ -38,6 +42,8 @@ export const FISH_DATA: readonly FishDefinition[] = [
   {
     id: 'kelp-darter',
     displayName: 'Kelp Darter',
+    sizeTier: 'medium',
+    requiredBaitTier: 'medium',
     color: 0x6fcf97,
     biomeIds: ['kelp-forest'],
     minDepth: 520,
@@ -52,6 +58,8 @@ export const FISH_DATA: readonly FishDefinition[] = [
   {
     id: 'deep-gulper',
     displayName: 'Deep Gulper',
+    sizeTier: 'large',
+    requiredBaitTier: 'large',
     color: 0x8a7bd8,
     biomeIds: ['kelp-forest', 'twilight-waters'],
     minDepth: 650,
@@ -66,6 +74,8 @@ export const FISH_DATA: readonly FishDefinition[] = [
   {
     id: 'lantern-drifter',
     displayName: 'Lantern Drifter',
+    sizeTier: 'veryLarge',
+    requiredBaitTier: 'large',
     color: 0xffd166,
     biomeIds: ['twilight-waters', 'midnight-trench', 'industrial-graveyard'],
     minDepth: 1200,

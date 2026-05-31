@@ -19,7 +19,10 @@ import { FishAISystem } from '../systems/FishAISystem'
 import { PredatorSystem } from '../systems/PredatorSystem'
 import { HookCollisionSystem } from '../systems/HookCollisionSystem'
 import { EconomySystem } from '../systems/EconomySystem'
+import { ShopSystem } from '../systems/ShopSystem'
 import { FishingStateMachine } from '../systems/FishingStateMachine'
+import { BaitSystem } from '../systems/BaitSystem'
+import { CatchDecisionSystem } from '../systems/CatchDecisionSystem'
 import { EventBus } from '../events/EventBus'
 import { GameEvents } from '../events/GameEvents'
 
@@ -41,6 +44,9 @@ export class WorldScene extends Phaser.Scene {
   private fishAI!: FishAISystem
   private predators!: PredatorSystem
   private economy!: EconomySystem
+  private shop!: ShopSystem
+  private bait!: BaitSystem
+  private catchDecision!: CatchDecisionSystem
   private fishing!: FishingStateMachine
 
   constructor() {
@@ -62,12 +68,16 @@ export class WorldScene extends Phaser.Scene {
     this.castPowerBar = new CastPowerBar(this)
     this.line = new FishingLine(this)
     this.inputSystem = new InputSystem(this)
-    this.stats = new PlayerStats(this.horse)
     this.biomes = new BiomeSystem()
     this.spawn = new FishSpawnSystem(this, this.biomes)
     this.fishAI = new FishAISystem()
     this.predators = new PredatorSystem(this, this.biomes)
     this.economy = new EconomySystem()
+    this.shop = new ShopSystem(this.economy)
+    this.stats = new PlayerStats(this.horse, this.shop)
+    this.bait = new BaitSystem()
+    this.catchDecision = new CatchDecisionSystem(this.economy, this.bait)
+    this.lure.setBaitColor(this.bait.color)
 
     this.fishing = new FishingStateMachine({
       horse: this.horse,
@@ -81,7 +91,8 @@ export class WorldScene extends Phaser.Scene {
       predators: this.predators,
       biomes: this.biomes,
       hook: new HookCollisionSystem(),
-      economy: this.economy,
+      bait: this.bait,
+      catchDecision: this.catchDecision,
     })
 
     // Re-frame once layout/scale is settled so idle start shows horse + surface.
@@ -89,6 +100,9 @@ export class WorldScene extends Phaser.Scene {
     this.scale.on(Phaser.Scale.Events.RESIZE, this.handleViewportResize, this)
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.scale.off(Phaser.Scale.Events.RESIZE, this.handleViewportResize, this)
+      this.inputSystem.destroy()
+      this.fishing.destroy()
+      this.shop.destroy()
     })
   }
 

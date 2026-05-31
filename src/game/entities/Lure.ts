@@ -30,12 +30,14 @@ export interface LureUpdateContext {
 export class Lure {
   /** The visual whose transform IS the lure's world position. */
   readonly sprite: Phaser.GameObjects.Image
+  private readonly baitVisual: Phaser.GameObjects.Arc
   private vx = 0
   private vy = 0
   private modeValue: LureMode = 'docked'
   /** While hanging: the X the lure sways around, and a time accumulator. */
   private hangAnchorX = 0
   private hangTime = 0
+  private showBaitMarker = true
 
   constructor(scene: Phaser.Scene) {
     this.sprite = scene.add
@@ -43,6 +45,11 @@ export class Lure {
       .setOrigin(FishingConfig.lure.originX, FishingConfig.lure.originY)
       .setScale(FishingConfig.lure.scale)
       .setDepth(9)
+      .setVisible(false)
+    this.baitVisual = scene.add
+      .circle(0, 0, FishingConfig.baitVisual.radius, FishingConfig.baitVisual.color)
+      .setDepth(10)
+      .setAlpha(FishingConfig.baitVisual.alpha)
       .setVisible(false)
   }
 
@@ -71,12 +78,31 @@ export class Lure {
     return this.modeValue !== 'docked'
   }
 
+  setBaitColor(color: number): void {
+    this.baitVisual.setFillStyle(color)
+  }
+
+  /** Hide bait marker while a fish is on the hook; restore when line is bait-only again. */
+  setBaitVisible(visible: boolean): void {
+    this.showBaitMarker = visible
+    if (!visible) {
+      this.baitVisual.setVisible(false)
+      return
+    }
+    if (this.isActive) {
+      this.syncBaitVisual()
+      this.baitVisual.setVisible(true)
+    }
+  }
+
   /**
    * Fires the lure out of the rod tip with explicit world-space velocity
    * components. Gravity then arcs it until water entry.
    */
   launch(fromX: number, fromY: number, velocityX: number, velocityY: number): void {
     this.sprite.setPosition(fromX, fromY).setVisible(true)
+    this.syncBaitVisual()
+    this.baitVisual.setVisible(this.showBaitMarker)
     this.vx = velocityX
     this.vy = velocityY
     this.modeValue = 'airborne'
@@ -95,6 +121,8 @@ export class Lure {
     this.vx = 0
     this.vy = 0
     this.sprite.setVisible(false)
+    this.baitVisual.setVisible(false)
+    this.showBaitMarker = true
   }
 
   /**
@@ -122,6 +150,7 @@ export class Lure {
       const nextY = this.sprite.y + this.vy * dtSec
       this.sprite.x = Phaser.Math.Clamp(nextX, WorldConfig.worldLeftX, worldRightX)
       this.sprite.y = Phaser.Math.Clamp(nextY, -WorldConfig.skyHeight, limitY)
+      this.syncBaitVisual()
       return
     }
 
@@ -173,6 +202,7 @@ export class Lure {
     const nextY = this.sprite.y + this.vy * dtSec
     this.sprite.x = Phaser.Math.Clamp(nextX, WorldConfig.worldLeftX, worldRightX)
     this.sprite.y = Phaser.Math.Clamp(nextY, WorldConfig.waterlineY, limitY)
+    this.syncBaitVisual()
   }
 
   /** Holds at the line limit with a soft bob + sway so it reads as alive. */
@@ -187,5 +217,14 @@ export class Lure {
     this.hangTime += dtSec
     this.sprite.y = limitY + Math.sin(this.hangTime * LureMotionConfig.hangBobSpeed) * LureMotionConfig.hangBobAmplitude
     this.sprite.x = this.hangAnchorX + Math.sin(this.hangTime * LureMotionConfig.hangSwaySpeed) * LureMotionConfig.hangSwayAmplitude
+    this.syncBaitVisual()
+  }
+
+  private syncBaitVisual(): void {
+    if (!this.showBaitMarker) {
+      return
+    }
+    this.baitVisual.x = this.sprite.x + FishingConfig.baitVisual.offsetX
+    this.baitVisual.y = this.sprite.y + FishingConfig.baitVisual.offsetY
   }
 }

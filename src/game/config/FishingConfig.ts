@@ -9,6 +9,16 @@ export const FishingConfig = {
     originY: 0.12,
   },
 
+  /** Simple hook-bait marker shown on the lure while fishing. */
+  baitVisual: {
+    radius: 6,
+    alpha: 0.8,
+    color: 0xffffff,
+    offsetX: 0,
+    /** World offset from lure anchor; aligns near hookedPose.hookOffsetY (34). */
+    offsetY: 30,
+  },
+
   /** Hook contact reach (world units) used later for fish collision. */
   hookRadius: 28,
 

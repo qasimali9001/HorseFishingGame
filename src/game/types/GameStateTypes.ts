@@ -8,5 +8,6 @@ export enum FishingState {
   FishHooked = 'FishHooked',
   Reeling = 'Reeling',
   CatchLanded = 'CatchLanded',
+  AwaitingCatchDecision = 'AwaitingCatchDecision',
   CatchLost = 'CatchLost',
 }

@@ -6,6 +6,11 @@ export interface RodStatsProvider {
   readonly rodStats: RodStats
 }
 
+/** Anything that can provide aggregated upgrade contributions by effect id. */
+export interface UpgradeContributionProvider {
+  getContribution(effectId: 'castPower' | 'reelSpeed' | 'maxDepth'): number
+}
+
 /**
  * The single read-time composer of effective player stats:
  *
@@ -18,8 +23,7 @@ export interface RodStatsProvider {
 export class PlayerStats {
   constructor(
     private readonly rodProvider: RodStatsProvider,
-    /** Upgrade levels keyed by effect id. Empty until the upgrade system lands. */
-    private readonly upgradeLevels: Record<string, number> = {},
+    private readonly upgrades?: UpgradeContributionProvider,
   ) {}
 
   get maxDepth(): number {
@@ -53,6 +57,12 @@ export class PlayerStats {
    * call sites above stay unchanged.
    */
   private upgradeContribution(effectId: string): number {
-    return this.upgradeLevels[effectId] ?? 0
+    if (!this.upgrades) {
+      return 0
+    }
+    if (effectId === 'castPower' || effectId === 'reelSpeed' || effectId === 'maxDepth') {
+      return this.upgrades.getContribution(effectId)
+    }
+    return 0
   }
 }

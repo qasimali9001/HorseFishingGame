@@ -1,4 +1,6 @@
 /** Spawn-weight tier; lower tiers are rarer. */
+import type { BaitTier, FishSizeTier } from './BaitTypes'
+
 export type FishRarity = 'common' | 'uncommon' | 'rare' | 'legendary'
 
 /**
@@ -8,6 +10,10 @@ export type FishRarity = 'common' | 'uncommon' | 'rare' | 'legendary'
 export interface FishDefinition {
   id: string
   displayName: string
+  /** Size tier used by bait progression + catch gating. */
+  sizeTier: FishSizeTier
+  /** Minimum bait tier required to hook this fish. */
+  requiredBaitTier: BaitTier
   /** Placeholder body color. */
   color: number
   /** Biomes this species can appear in (see biomeData). */
