@@ -9,7 +9,7 @@ import { CastPower } from './CastPower'
 import { LinePayoutController } from './LinePayoutController'
 import type { InputSystem } from './InputSystem'
 import type { PlayerStats } from './PlayerStats'
-import type { FishSpawnSystem } from './FishSpawnSystem'
+import type { FishPopulation } from '../types/SpawnPointTypes'
 import type { FishAISystem } from './FishAISystem'
 import type { PredatorSystem } from './PredatorSystem'
 import type { BiomeSystem } from './BiomeSystem'
@@ -28,7 +28,7 @@ export interface FishingDeps {
   input: InputSystem
   castPowerBar: CastPowerBar
   stats: PlayerStats
-  spawn: FishSpawnSystem
+  spawn: FishPopulation
   fishAI: FishAISystem
   predators: PredatorSystem
   biomes: BiomeSystem

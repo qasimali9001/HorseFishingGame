@@ -10,11 +10,13 @@ export type FishRarity = 'common' | 'uncommon' | 'rare' | 'legendary'
 export interface FishDefinition {
   id: string
   displayName: string
+  /** Texture id from FishAssets (lets each species swap art independently). */
+  artId: string
   /** Size tier used by bait progression + catch gating. */
   sizeTier: FishSizeTier
   /** Minimum bait tier required to hook this fish. */
   requiredBaitTier: BaitTier
-  /** Placeholder body color. */
+  /** Fallback tint used if a texture key is missing. */
   color: number
   /** Biomes this species can appear in (see biomeData). */
   biomeIds: string[]

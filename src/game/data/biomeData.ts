@@ -15,7 +15,7 @@ export const BIOME_DATA: readonly BiomeDefinition[] = [
     backgroundColorBottom: 0x2f93b8,
     fogOpacity: 0.0,
     lightMultiplier: 1.0,
-    fishIds: ['pebble-minnow', 'sun-perch'],
+    fishIds: ['pebble-minnow', 'sand-skipper', 'sun-perch', 'dune-snapper'],
     propIds: ['reed', 'pebble'],
   },
   {
@@ -27,7 +27,7 @@ export const BIOME_DATA: readonly BiomeDefinition[] = [
     backgroundColorBottom: 0x16637e,
     fogOpacity: 0.1,
     lightMultiplier: 0.85,
-    fishIds: ['sun-perch', 'kelp-darter', 'deep-gulper'],
+    fishIds: ['sun-perch', 'kelp-darter', 'dune-snapper', 'deep-gulper', 'canyon-grouper'],
     propIds: ['kelp', 'rock'],
   },
   {
@@ -39,7 +39,7 @@ export const BIOME_DATA: readonly BiomeDefinition[] = [
     backgroundColorBottom: 0x0c3b52,
     fogOpacity: 0.22,
     lightMultiplier: 0.6,
-    fishIds: ['deep-gulper', 'lantern-drifter'],
+    fishIds: ['deep-gulper', 'canyon-grouper', 'lantern-drifter'],
     propIds: ['spire', 'driftwood'],
   },
   {

@@ -15,6 +15,9 @@ import { InputSystem } from '../systems/InputSystem'
 import { PlayerStats } from '../systems/PlayerStats'
 import { BiomeSystem } from '../systems/BiomeSystem'
 import { FishSpawnSystem } from '../systems/FishSpawnSystem'
+import { SpawnPointSystem } from '../systems/SpawnPointSystem'
+import { SpawnConfig } from '../config/SpawnConfig'
+import type { FishPopulation } from '../types/SpawnPointTypes'
 import { FishAISystem } from '../systems/FishAISystem'
 import { PredatorSystem } from '../systems/PredatorSystem'
 import { HookCollisionSystem } from '../systems/HookCollisionSystem'
@@ -40,7 +43,7 @@ export class WorldScene extends Phaser.Scene {
   private inputSystem!: InputSystem
   private stats!: PlayerStats
   private biomes!: BiomeSystem
-  private spawn!: FishSpawnSystem
+  private spawn!: FishPopulation
   private fishAI!: FishAISystem
   private predators!: PredatorSystem
   private economy!: EconomySystem
@@ -69,7 +72,12 @@ export class WorldScene extends Phaser.Scene {
     this.line = new FishingLine(this)
     this.inputSystem = new InputSystem(this)
     this.biomes = new BiomeSystem()
-    this.spawn = new FishSpawnSystem(this, this.biomes)
+    // Population source is config-driven: editor-authored spawn points by
+    // default, with the legacy procedural spawner kept as a parity fallback.
+    this.spawn =
+      SpawnConfig.mode === 'points'
+        ? new SpawnPointSystem(this)
+        : new FishSpawnSystem(this, this.biomes)
     this.fishAI = new FishAISystem()
     this.predators = new PredatorSystem(this, this.biomes)
     this.economy = new EconomySystem()

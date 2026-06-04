@@ -2,7 +2,9 @@
 export const SceneKeys = {
   Boot: 'BootScene',
   Preload: 'PreloadScene',
+  Title: 'TitleScene',
   World: 'WorldScene',
   UI: 'UIScene',
   HorseRigTest: 'HorseRigTestScene',
+  LevelEditor: 'LevelEditorScene',
 } as const

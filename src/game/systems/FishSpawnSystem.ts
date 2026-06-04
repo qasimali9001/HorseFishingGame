@@ -5,22 +5,22 @@ import { FishConfig } from '../config/FishConfig'
 import { WorldConfig, worldRightX } from '../config/WorldConfig'
 import type { BiomeSystem } from './BiomeSystem'
 import type { FishDefinition } from '../types/FishTypes'
+import type { FishPopulation, FishSpawnContext } from '../types/SpawnPointTypes'
 
-export interface SpawnContext {
-  /** Only spawn new fish while the lure is fishing underwater. */
-  lureUnderwater: boolean
-  /** Player's reachable depth (PlayerStats.maxDepth) -- caps where fish appear. */
-  maxDepth: number
-}
+/** @deprecated Use FishSpawnContext from SpawnPointTypes (kept as an alias). */
+export type SpawnContext = FishSpawnContext
 
 /**
- * Maintains the live fish population around the camera view. Fish swim in from
- * just offscreen, cross the visible area, and despawn once well past it, so we
- * only ever pay for a handful of fish near gameplay regardless of world size.
- * Spawn eligibility is gated by depth AND biome (see BiomeSystem). Movement is
- * owned by FishAISystem -- this system only manages the population.
+ * Legacy procedural population around the camera view. Fish swim in from just
+ * offscreen, cross the visible area, and despawn once well past it, so we only
+ * ever pay for a handful of fish near gameplay regardless of world size. Spawn
+ * eligibility is gated by depth AND biome (see BiomeSystem). Movement is owned
+ * by FishAISystem -- this system only manages the population.
+ *
+ * Kept as a parity fallback behind `SpawnConfig.mode`; the default population
+ * source is now the editor-authored `SpawnPointSystem`.
  */
-export class FishSpawnSystem {
+export class FishSpawnSystem implements FishPopulation {
   private readonly scene: Phaser.Scene
   private readonly biomes: BiomeSystem
   private readonly fish: Fish[] = []
@@ -35,7 +35,7 @@ export class FishSpawnSystem {
     return this.fish
   }
 
-  update(dtSec: number, ctx: SpawnContext): void {
+  update(dtSec: number, ctx: FishSpawnContext): void {
     this.despawnOffscreen()
 
     this.spawnTimer += dtSec * 1000

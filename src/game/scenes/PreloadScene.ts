@@ -1,10 +1,12 @@
 import Phaser from 'phaser'
 import { SceneKeys } from './SceneKeys'
 import { loadHorseAssets } from '../assets/HorseAssets'
+import { ensureFishAssets } from '../assets/FishAssets'
+import { loadTitleAssets } from '../assets/TitleAssets'
 
 /**
  * Asset loading lives here. Loads the horse rig textures, then launches the
- * World + UI scenes together.
+ * player-facing title scene.
  */
 export class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -13,10 +15,11 @@ export class PreloadScene extends Phaser.Scene {
 
   preload(): void {
     loadHorseAssets(this)
+    loadTitleAssets(this)
   }
 
   create(): void {
-    this.scene.start(SceneKeys.World)
-    this.scene.launch(SceneKeys.UI)
+    ensureFishAssets(this)
+    this.scene.start(SceneKeys.Title)
   }
 }

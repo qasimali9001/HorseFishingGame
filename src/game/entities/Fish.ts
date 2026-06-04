@@ -31,49 +31,14 @@ export class Fish {
 
     // `facing` holds the art (drawn pointing right) so we can flip via scaleX.
     this.facing = scene.add.container(0, 0)
-    const outlineColor = 0x15313f
-    const bodyOutline = scene.add.ellipse(
-      0,
-      0,
-      def.radius * 2.65,
-      def.radius * 1.82,
-      outlineColor,
-      0.95,
-    )
-    const tailOutline = scene.add.triangle(
-      -def.radius * 1.32,
-      0,
-      0,
-      0,
-      def.radius * 1.05,
-      -def.radius * 0.86,
-      def.radius * 1.05,
-      def.radius * 0.86,
-      outlineColor,
-      0.95,
-    )
-    const body = scene.add.ellipse(0, 0, def.radius * 2.4, def.radius * 1.6, def.color)
-    const tail = scene.add.triangle(
-      -def.radius * 1.2,
-      0,
-      0,
-      0,
-      def.radius * 0.9,
-      -def.radius * 0.7,
-      def.radius * 0.9,
-      def.radius * 0.7,
-      def.color,
-    )
-    const highlight = scene.add.ellipse(
-      def.radius * 0.15,
-      -def.radius * 0.34,
-      def.radius * 0.9,
-      def.radius * 0.24,
-      0xffffff,
-      0.28,
-    )
-    const eye = scene.add.circle(def.radius * 0.7, -def.radius * 0.25, Math.max(2, def.radius * 0.16), 0x1a1110)
-    this.facing.add([tailOutline, bodyOutline, tail, body, highlight, eye])
+    const artKey = scene.textures.exists(def.artId) ? def.artId : '__WHITE'
+    const body = scene.add.image(0, 0, artKey)
+    body.setDisplaySize(def.radius * 2.9, def.radius * 1.9)
+    body.setTintFill(def.color)
+    if (artKey !== '__WHITE') {
+      body.clearTint()
+    }
+    this.facing.add(body)
     this.facing.scaleX = dir
 
     this.container = scene.add.container(x, y, [this.facing]).setDepth(FishConfig.renderDepth)
