@@ -23,5 +23,5 @@ export const SPAWN_POINT_DATA: readonly SpawnPointDefinition[] = [
   { id: 'sp-edit-13', x: 1240, y: 300, fishId: 'slender-blue-white', maxAlive: 1, swimRange: 720 },
   { id: 'sp-edit-14', x: 1640, y: 240, fishId: 'slender-blue-white', maxAlive: 1, swimRange: 960 },
   { id: 'sp-edit-15', x: 560, y: 560, fishId: 'greenish-brown', maxAlive: 1, swimRange: 360 },
-  { id: 'sp-edit-17', x: 1040, y: 640, fishId: 'purple-chunky', maxAlive: 1, swimRange: 120 },
+  { id: 'sp-edit-17', x: 1040, y: 640, fishId: 'purple-chunky', maxAlive: 1, swimRange: 420 },
 ]

@@ -29,6 +29,8 @@ export class Fish {
   private baseY: number
   private wobbleTime = Math.random() * Math.PI * 2
   private hangTime = 0
+  /** True while bait/hooked-fish AI is actively steering this fish. */
+  private chaseUnlocked = false
 
   constructor(
     scene: Phaser.Scene,
@@ -45,7 +47,7 @@ export class Fish {
     this.homeX = x
     this.homeY = y
     this.baseY = y
-    this.swimSpeedValue = def.speed
+    this.swimSpeedValue = def.speed * FishConfig.speedMultiplier
     this.swimBounds = swimBounds
     this.vx = this.swimSpeedValue * dir
     this.hookedMouthLead = FishHookedPose.mouthLeadFromCenter(scene, def)
@@ -97,6 +99,10 @@ export class Fish {
     this.container.setDepth(FishConfig.hookedRenderDepth)
   }
 
+  setChasingStimulus(active: boolean): void {
+    this.chaseUnlocked = active
+  }
+
   /**
    * Apply AI steering for one frame. `steerAlpha` is the already dt-adjusted
    * lerp weight; `baseYDelta` shifts the swim line vertically (clamped to water).
@@ -142,13 +148,7 @@ export class Fish {
       return
     }
     this.container.x += this.vx * dtSec
-    if (this.container.x <= this.swimBounds.minX) {
-      this.container.x = this.swimBounds.minX
-      this.vx = Math.abs(this.vx)
-    } else if (this.container.x >= this.swimBounds.maxX) {
-      this.container.x = this.swimBounds.maxX
-      this.vx = -Math.abs(this.vx)
-    }
+    this.enforcePatrolBounds()
     this.wobbleTime += dtSec * FishConfig.wobbleSpeed
     this.container.y = this.baseY + Math.sin(this.wobbleTime) * FishConfig.wobbleAmplitude
     this.facing.scaleX = FishOrientation.scaleXForVelocity(this.vx)
@@ -190,5 +190,32 @@ export class Fish {
 
   destroy(): void {
     this.container.destroy()
+  }
+
+  /**
+   * Patrol walls only apply during normal idle swim inside the spawn box.
+   * Chasing bait/hooked fish may leave the box; returning home may pass back
+   * through without getting snapped to the edge.
+   */
+  private enforcePatrolBounds(): void {
+    if (this.chaseUnlocked) {
+      return
+    }
+
+    const { minX, maxX } = this.swimBounds
+    const x = this.container.x
+
+    // Off-patrol excursions are recovered by returnHome, not hard wall snaps.
+    if (x < minX || x > maxX) {
+      return
+    }
+
+    if (x <= minX && this.vx < 0) {
+      this.container.x = minX
+      this.vx = Math.abs(this.vx)
+    } else if (x >= maxX && this.vx > 0) {
+      this.container.x = maxX
+      this.vx = -Math.abs(this.vx)
+    }
   }
 }

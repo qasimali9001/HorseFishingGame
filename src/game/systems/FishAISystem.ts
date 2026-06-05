@@ -34,8 +34,9 @@ export class FishAISystem {
       }
 
       const target = this.closestStimulus(f, ctx)
+      f.setChasingStimulus(Boolean(target))
       if (target) {
-        this.steerTowardBait(f, target.dx, target.dy, steerAlpha, dtSec)
+        this.steerTowardStimulus(f, target.dx, target.dy, steerAlpha, dtSec)
       } else {
         f.returnHome(dtSec)
       }
@@ -45,32 +46,36 @@ export class FishAISystem {
   }
 
   /** Steers a fish toward bait or a hooked fish; larger fish steer harder. */
-  private steerTowardBait(
+  private steerTowardStimulus(
     fish: Fish,
     dx: number,
     dy: number,
     steerAlpha: number,
     dtSec: number,
   ): void {
+    const dist = Math.hypot(dx, dy)
+    if (dist <= 0.001) {
+      return
+    }
+
     const aggression = this.aggressionForSize(fish.radius)
     const attraction = FishConfig.baitAttraction
-    const horizontalDir = Math.sign(dx) || 1
     const speedScale = Phaser.Math.Linear(
       attraction.minSpeedScale,
       attraction.maxSpeedScale,
       aggression,
     )
-    const desiredVx = horizontalDir * fish.swimSpeed * speedScale
+    const swimSpeed = fish.swimSpeed * speedScale
+    const desiredVx = (dx / dist) * swimSpeed
 
     const verticalSpeed = Phaser.Math.Linear(
       attraction.minVerticalSpeed,
       attraction.maxVerticalSpeed,
       aggression,
     )
-    const verticalDir = Math.sign(dy) || 1
-    const baseYDelta = verticalDir * verticalSpeed * dtSec
+    const baseYDelta = Phaser.Math.Clamp((dy / dist) * verticalSpeed * dtSec, -Math.abs(dy), Math.abs(dy))
 
-    fish.applySteer(desiredVx, steerAlpha, Phaser.Math.Clamp(baseYDelta, -Math.abs(dy), Math.abs(dy)))
+    fish.applySteer(desiredVx, steerAlpha, baseYDelta)
   }
 
   private closestStimulus(

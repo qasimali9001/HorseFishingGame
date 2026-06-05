@@ -45,6 +45,9 @@ export const FishConfig = {
     maxSpeed: 200,
     editorStepSpeed: 5,
   },
+
+  /** Runtime multiplier applied to every species' swim speed. */
+  speedMultiplier: 2,
   /** How often the spawner tries to add a fish while the lure is underwater. */
   spawnIntervalMs: 650,
 
