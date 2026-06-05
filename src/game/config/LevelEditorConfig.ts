@@ -47,4 +47,15 @@ export const LevelEditorConfig = {
   maxAliveStep: 1,
   maxAliveMin: 1,
   maxAliveMax: 8,
+
+  /** Horizontal swim range edited per spawn point. */
+  defaultSwimRange: 360,
+  swimRangeStep: 40,
+  swimRangeMin: 80,
+  swimRangeMax: 1200,
+
+  /** Selected spawn-point patrol range visual. */
+  swimRangeColor: 0xffd166,
+  swimRangeAlpha: 0.8,
+  swimRangeWidth: 3,
 } as const

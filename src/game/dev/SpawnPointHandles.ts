@@ -1,6 +1,7 @@
 import Phaser from 'phaser'
 import { FISH_DATA } from '../data/fishData'
 import { LevelEditorConfig } from '../config/LevelEditorConfig'
+import { FishBodySprite } from '../entities/FishBodySprite'
 import type { SpawnPointDefinition } from '../types/SpawnPointTypes'
 
 /** Scene-level actions the handles trigger but do not own. */
@@ -70,14 +71,9 @@ export class SpawnPointHandles {
     const container = this.scene.add.container(def.x, def.y).setDepth(50)
 
     const fishDef = FISH_DATA.find((f) => f.id === def.fishId)
-    const artKey =
-      fishDef && this.scene.textures.exists(fishDef.artId) ? fishDef.artId : '__WHITE'
-    const preview = this.scene.add.image(0, 0, artKey)
-    const r = fishDef?.radius ?? 16
-    preview.setDisplaySize(r * 2.4, r * 1.6)
-    if (artKey === '__WHITE' && fishDef) {
-      preview.setTintFill(fishDef.color)
-    }
+    const preview = fishDef
+      ? FishBodySprite.create(this.scene, fishDef)
+      : this.scene.add.image(0, 0, '__WHITE').setDisplaySize(32, 20)
 
     const ring = this.scene.add.graphics()
     const label = this.scene.add
@@ -121,6 +117,13 @@ export class SpawnPointHandles {
   private drawRing(view: MarkerView, selected: boolean): void {
     const cfg = LevelEditorConfig
     view.ring.clear()
+    if (selected) {
+      const halfRange = view.def.swimRange / 2
+      view.ring.lineStyle(cfg.swimRangeWidth, cfg.swimRangeColor, cfg.swimRangeAlpha)
+      view.ring.lineBetween(-halfRange, 0, halfRange, 0)
+      view.ring.lineBetween(-halfRange, -8, -halfRange, 8)
+      view.ring.lineBetween(halfRange, -8, halfRange, 8)
+    }
     view.ring.lineStyle(
       selected ? cfg.selectedRingWidth : cfg.markerRingWidth,
       selected ? cfg.selectedRingColor : cfg.markerRingColor,
@@ -138,7 +141,9 @@ export class SpawnPointHandles {
   refreshLabel(view: MarkerView): void {
     const def = view.def
     const off = def.enabled === false ? '  (off)' : ''
-    view.label.setText(`${def.fishId}\n×${def.maxAlive}  ${(def.respawnMs / 1000).toFixed(0)}s${off}`)
+    const fishDef = FISH_DATA.find((f) => f.id === def.fishId)
+    const name = fishDef?.displayName ?? def.fishId
+    view.label.setText(`${name}\n×${def.maxAlive}  ${(def.respawnMs / 1000).toFixed(0)}s  swim ${def.swimRange}${off}`)
     view.container.setAlpha(def.enabled === false ? LevelEditorConfig.disabledAlpha : 1)
   }
 
@@ -146,6 +151,7 @@ export class SpawnPointHandles {
   refresh(id: string): void {
     const view = this.markers.get(id)
     if (view) {
+      this.drawRing(view, view.def.id === this.selectedId)
       this.refreshLabel(view)
     }
   }

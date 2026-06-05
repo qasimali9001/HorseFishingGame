@@ -7,6 +7,8 @@ export interface FishAIContext {
   lureY: number
   /** Only react to the lure while it is actually fishing underwater. */
   lureActive: boolean
+  /** Other fish can also react to the currently caught fish. */
+  hookedFish: Fish | null
 }
 
 /**
@@ -29,14 +31,9 @@ export class FishAISystem {
         continue
       }
 
-      if (ctx.lureActive) {
-        const dx = ctx.lureX - f.x
-        const dy = ctx.lureY - f.y
-        const dist = Math.hypot(dx, dy)
-        const reactionRadius = this.reactionRadius(f.radius)
-        if (dist <= reactionRadius && dist > 0.001) {
-          this.steerTowardBait(f, dx, dy, steerAlpha, dtSec)
-        }
+      const target = this.closestStimulus(f, ctx)
+      if (target) {
+        this.steerTowardBait(f, target.dx, target.dy, steerAlpha, dtSec)
       }
 
       f.update(dtSec)
@@ -72,9 +69,26 @@ export class FishAISystem {
     fish.applySteer(desiredVx, steerAlpha, Phaser.Math.Clamp(baseYDelta, -Math.abs(dy), Math.abs(dy)))
   }
 
-  private reactionRadius(fishRadius: number): number {
-    const attraction = FishConfig.baitAttraction
-    return attraction.baseRadius + fishRadius * attraction.radiusPerFishSize
+  private closestStimulus(
+    fish: Fish,
+    ctx: FishAIContext,
+  ): { dx: number; dy: number; dist: number } | null {
+    const candidates: Array<{ dx: number; dy: number; dist: number }> = []
+    if (ctx.lureActive) {
+      const dx = ctx.lureX - fish.x
+      const dy = ctx.lureY - fish.y
+      candidates.push({ dx, dy, dist: Math.hypot(dx, dy) })
+    }
+    if (ctx.hookedFish) {
+      const dx = ctx.hookedFish.x - fish.x
+      const dy = ctx.hookedFish.y - fish.y
+      candidates.push({ dx, dy, dist: Math.hypot(dx, dy) })
+    }
+
+    const inRange = candidates
+      .filter((candidate) => candidate.dist <= fish.aggressionRadius && candidate.dist > 0.001)
+      .sort((a, b) => a.dist - b.dist)
+    return inRange[0] ?? null
   }
 
   private aggressionForSize(fishRadius: number): number {

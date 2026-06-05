@@ -1,7 +1,10 @@
 import Phaser from 'phaser'
 import { FishConfig } from '../config/FishConfig'
 import { WorldConfig } from '../config/WorldConfig'
-import type { FishDefinition } from '../types/FishTypes'
+import { FishBodySprite } from './FishBodySprite'
+import { FishHookedPose } from './FishHookedPose'
+import { FishOrientation } from './FishOrientation'
+import type { FishDefinition, FishSwimBounds } from '../types/FishTypes'
 
 export type FishMode = 'swimming' | 'hooked'
 
@@ -19,27 +22,34 @@ export class Fish {
   private vx: number
   /** Chosen base swim speed magnitude (used by AI steering scales). */
   private readonly swimSpeedValue: number
+  private readonly swimBounds: FishSwimBounds
+  private readonly hookedMouthLead: number
   private baseY: number
   private wobbleTime = Math.random() * Math.PI * 2
   private hangTime = 0
 
-  constructor(scene: Phaser.Scene, def: FishDefinition, x: number, y: number, dir: 1 | -1) {
+  constructor(
+    scene: Phaser.Scene,
+    def: FishDefinition,
+    x: number,
+    y: number,
+    dir: 1 | -1,
+    swimBounds: FishSwimBounds = {
+      minX: WorldConfig.worldLeftX,
+      maxX: WorldConfig.worldLeftX + WorldConfig.worldWidth,
+    },
+  ) {
     this.def = def
     this.baseY = y
-    this.swimSpeedValue = Phaser.Math.Between(def.speedMin, def.speedMax)
+    this.swimSpeedValue = def.speed
+    this.swimBounds = swimBounds
     this.vx = this.swimSpeedValue * dir
+    this.hookedMouthLead = FishHookedPose.mouthLeadFromCenter(scene, def)
 
-    // `facing` holds the art (drawn pointing right) so we can flip via scaleX.
+    // `facing` holds the art; scaleX flips it to match travel direction.
     this.facing = scene.add.container(0, 0)
-    const artKey = scene.textures.exists(def.artId) ? def.artId : '__WHITE'
-    const body = scene.add.image(0, 0, artKey)
-    body.setDisplaySize(def.radius * 2.9, def.radius * 1.9)
-    body.setTintFill(def.color)
-    if (artKey !== '__WHITE') {
-      body.clearTint()
-    }
-    this.facing.add(body)
-    this.facing.scaleX = dir
+    this.facing.add(FishBodySprite.create(scene, def))
+    this.facing.scaleX = FishOrientation.scaleXForDirection(dir)
 
     this.container = scene.add.container(x, y, [this.facing]).setDepth(FishConfig.renderDepth)
   }
@@ -63,6 +73,10 @@ export class Fish {
   /** Base swim speed magnitude (world units / second). */
   get swimSpeed(): number {
     return this.swimSpeedValue
+  }
+
+  get aggressionRadius(): number {
+    return this.def.aggressionRadius
   }
 
   get isHooked(): boolean {
@@ -101,19 +115,28 @@ export class Fish {
       return
     }
     this.container.x += this.vx * dtSec
+    if (this.container.x <= this.swimBounds.minX) {
+      this.container.x = this.swimBounds.minX
+      this.vx = Math.abs(this.vx)
+    } else if (this.container.x >= this.swimBounds.maxX) {
+      this.container.x = this.swimBounds.maxX
+      this.vx = -Math.abs(this.vx)
+    }
     this.wobbleTime += dtSec * FishConfig.wobbleSpeed
     this.container.y = this.baseY + Math.sin(this.wobbleTime) * FishConfig.wobbleAmplitude
-    this.facing.scaleX = this.vx >= 0 ? 1 : -1
+    this.facing.scaleX = FishOrientation.scaleXForVelocity(this.vx)
   }
 
   /** Instantly place mouth on hook (used right when contact happens). */
   snapToHook(lureX: number, lureY: number): void {
-    const pose = FishConfig.hookedPose
-    const mouthLead = this.def.radius * pose.mouthLeadRadiusScale
-    this.container.x = lureX + pose.hookOffsetX
-    this.container.y = lureY + pose.hookOffsetY + mouthLead
-    this.facing.setAngle(pose.rotationDeg)
-    this.facing.scaleX = 1
+    const target = FishHookedPose.bodyTargetAtHookFromLead(
+      lureX,
+      lureY,
+      this.hookedMouthLead,
+    )
+    this.container.x = target.x
+    this.container.y = target.y
+    FishHookedPose.applyVisual(this.facing, 0)
   }
 
   /** Hooked fish tracks hook; tighter follow while reeling upward. */
@@ -124,19 +147,18 @@ export class Fish {
       : FishConfig.hookedFollowLerp
     const t = 1 - Math.pow(1 - followLerp, dtSec * 60)
 
-    const hookX = lureX + pose.hookOffsetX
-    const hookY = lureY + pose.hookOffsetY
-    const mouthLead = this.def.radius * pose.mouthLeadRadiusScale
-    const targetX = hookX
-    const targetY = hookY + mouthLead
+    const target = FishHookedPose.bodyTargetAtHookFromLead(
+      lureX,
+      lureY,
+      this.hookedMouthLead,
+    )
 
-    this.container.x = Phaser.Math.Linear(this.container.x, targetX, t)
-    this.container.y = Phaser.Math.Linear(this.container.y, targetY, t)
+    this.container.x = Phaser.Math.Linear(this.container.x, target.x, t)
+    this.container.y = Phaser.Math.Linear(this.container.y, target.y, t)
 
     this.hangTime += dtSec
     const sway = Math.sin(this.hangTime * pose.hangSwaySpeed) * pose.hangSwayDeg
-    this.facing.setAngle(pose.rotationDeg + sway)
-    this.facing.scaleX = 1
+    FishHookedPose.applyVisual(this.facing, sway)
   }
 
   destroy(): void {

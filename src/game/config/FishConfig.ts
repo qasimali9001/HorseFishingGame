@@ -1,7 +1,28 @@
+import type { FishSizeTier } from '../types/BaitTypes'
+
 /** Fish population + spawn/movement feel. */
 export const FishConfig = {
   /** Max fish alive at once (kept small for the prototype). */
   maxActive: 7,
+
+  /** World-unit width multiplier (radius * scale) per size tier for PNG art. */
+  displayWidthScaleByTier: {
+    small: 2.8,
+    medium: 2.9,
+    large: 3.0,
+    veryLarge: 3.1,
+  } satisfies Record<FishSizeTier, number>,
+
+  /** Fallback height multiplier when a texture is missing. */
+  displayHeightScaleByTier: {
+    small: 1.8,
+    medium: 1.9,
+    large: 2.0,
+    veryLarge: 2.1,
+  } satisfies Record<FishSizeTier, number>,
+
+  /** Reference PNGs face left (+x is tail); flip when swimming right. */
+  artFacesLeft: true,
   /** How often the spawner tries to add a fish while the lure is underwater. */
   spawnIntervalMs: 650,
 
@@ -32,21 +53,17 @@ export const FishConfig = {
     /** Hook position offset from lure world position. */
     hookOffsetX: 0,
     hookOffsetY: 34,
-    /** How far the fish mouth sits from its body center (along the head axis). */
-    mouthLeadRadiusScale: 0.72,
-    /** Nose-up on hook (fish art points right at 0 deg). */
-    rotationDeg: -90,
+    /** Mouth inset from sprite edge as a fraction of display width (art faces left). */
+    mouthLeadWidthScale: 0.48,
+    /** Mouth up, tail down (+y) for left-facing PNG art in Phaser rotation space. */
+    rotationDeg: 90,
     /** Gentle idle sway while dangling. */
     hangSwayDeg: 5,
     hangSwaySpeed: 1.6,
   },
 
-  /** Simple bait attraction driven by FishAISystem. Bigger fish react harder. */
+  /** Simple bait/caught-fish attraction driven by FishAISystem. */
   baitAttraction: {
-    /** Base lure proximity (world units) in which fish start to care. */
-    baseRadius: 230,
-    /** Extra reaction radius per fish radius unit. */
-    radiusPerFishSize: 5,
     /** Minimum attraction speed multiplier for tiny fish. */
     minSpeedScale: 0.45,
     /** Maximum attraction speed multiplier for larger/aggressive fish. */

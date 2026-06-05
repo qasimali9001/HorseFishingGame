@@ -113,6 +113,7 @@ export class FishingStateMachine {
       lureX: this.deps.lure.x,
       lureY: this.deps.lure.y,
       lureActive: fishing,
+      hookedFish: this.hookedFish,
     })
 
     if (fishing) {

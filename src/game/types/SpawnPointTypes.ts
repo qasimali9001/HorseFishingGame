@@ -20,6 +20,8 @@ export interface SpawnPointDefinition {
   respawnMs: number
   /** How many of this point's fish may be alive at once. */
   maxAlive: number
+  /** Horizontal patrol width in world units, centered on x. */
+  swimRange: number
   /** Defaults to true; `false` keeps the point in data but dormant. */
   enabled?: boolean
   /** Optional designer note (ignored at runtime). */

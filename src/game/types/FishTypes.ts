@@ -25,10 +25,17 @@ export interface FishDefinition {
   rarity: FishRarity
   /** Sell value when landed. */
   value: number
-  /** Horizontal swim speed range (world units / second). */
-  speedMin: number
-  speedMax: number
+  /** Horizontal swim speed (world units / second). */
+  speed: number
+  /** World-unit radius in which this fish detects bait or a hooked fish. */
+  aggressionRadius: number
   /** Body radius in world units (drives visual + hook reach). */
   radius: number
   canBeHooked: boolean
+}
+
+/** Horizontal patrol bounds for one fish instance in world coordinates. */
+export interface FishSwimBounds {
+  minX: number
+  maxX: number
 }

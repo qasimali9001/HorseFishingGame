@@ -3,8 +3,8 @@ import { Fish } from '../entities/Fish'
 import { FISH_DATA } from '../data/fishData'
 import { SPAWN_POINT_DATA } from '../data/spawnPointData'
 import { SpawnConfig } from '../config/SpawnConfig'
-import { WorldConfig } from '../config/WorldConfig'
-import type { FishDefinition } from '../types/FishTypes'
+import { WorldConfig, worldRightX } from '../config/WorldConfig'
+import type { FishDefinition, FishSwimBounds } from '../types/FishTypes'
 import type {
   FishPopulation,
   FishSpawnContext,
@@ -101,7 +101,14 @@ export class SpawnPointSystem implements FishPopulation {
 
     // Head toward the visible area so the fresh fish swims in rather than out.
     const dir: 1 | -1 = point.def.x <= centerX ? 1 : -1
-    const fish = new Fish(this.scene, point.fishDef, point.def.x, point.def.y, dir)
+    const fish = new Fish(
+      this.scene,
+      point.fishDef,
+      point.def.x,
+      point.def.y,
+      dir,
+      this.swimBoundsFor(point.def),
+    )
     this.fish.push(fish)
     this.ownerOf.set(fish, point)
     point.aliveCount += 1
@@ -141,5 +148,13 @@ export class SpawnPointSystem implements FishPopulation {
     const v = this.scene.cameras.main.worldView
     const m = SpawnConfig.activationMargin
     return new Phaser.Geom.Rectangle(v.x - m, v.y - m, v.width + m * 2, v.height + m * 2)
+  }
+
+  private swimBoundsFor(def: SpawnPointDefinition): FishSwimBounds {
+    const halfRange = def.swimRange / 2
+    return {
+      minX: Phaser.Math.Clamp(def.x - halfRange, WorldConfig.worldLeftX, worldRightX),
+      maxX: Phaser.Math.Clamp(def.x + halfRange, WorldConfig.worldLeftX, worldRightX),
+    }
   }
 }
