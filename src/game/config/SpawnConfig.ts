@@ -3,17 +3,16 @@ export type SpawnMode = 'points' | 'procedural'
 
 /**
  * Runtime tuning for the spawn-point population system (fixed editor-authored
- * points with per-point respawn timers). No gameplay logic here -- just numbers.
+ * points; species respawn timers live in fishData). No gameplay logic here.
  */
 export const SpawnConfig = {
   /**
-   * 'points'     = fixed, editor-authored spawn points with per-point respawn.
+   * 'points'     = fixed, editor-authored spawn points (species respawn from fishData).
    * 'procedural' = legacy camera-edge spawner (kept as a parity fallback).
    */
   mode: 'points' as SpawnMode,
 
   /** Defaults applied to a freshly placed spawn point in the editor. */
-  defaultRespawnMs: 9000,
   defaultMaxAlive: 2,
 
   /**

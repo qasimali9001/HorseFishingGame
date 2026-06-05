@@ -2,6 +2,7 @@ import Phaser from 'phaser'
 import { Fish } from '../entities/Fish'
 import { FISH_DATA } from '../data/fishData'
 import { SPAWN_POINT_DATA } from '../data/spawnPointData'
+import { FishConfig } from '../config/FishConfig'
 import { SpawnConfig } from '../config/SpawnConfig'
 import { WorldConfig, worldRightX } from '../config/WorldConfig'
 import type { FishDefinition, FishSwimBounds } from '../types/FishTypes'
@@ -22,9 +23,9 @@ interface PointRuntime {
 
 /**
  * Population from fixed, hand-authored spawn points (see spawnPointData /
- * `?editor`). Each point owns the fish it spawns; when one is removed (landed,
- * stolen, or despawned offscreen) the point starts a respawn cooldown, so an
- * area you have fished out goes quiet and the player roams to keep catching.
+ * `?editor`). Each point owns the fish it spawns. Spawn slots are paced by the
+ * species respawn timer so a `maxAlive: 2` point does not create instant twins.
+ * Fish that swim offscreen free their slot without restarting that timer.
  *
  * Implements the same `FishPopulation` contract as the legacy procedural
  * spawner, so `WorldScene` can swap between them via `SpawnConfig.mode` and the
@@ -44,7 +45,7 @@ export class SpawnPointSystem implements FishPopulation {
       def,
       fishDef: FISH_DATA.find((f) => f.id === def.fishId),
       aliveCount: 0,
-      // Stagger the very first spawn so points don't all pop on frame one.
+      // Stagger the first spawn so points do not all pop on frame one.
       nextSpawnAtMs: Phaser.Math.Between(0, SpawnConfig.initialSpawnJitterMs),
     }))
   }
@@ -67,14 +68,14 @@ export class SpawnPointSystem implements FishPopulation {
     }
   }
 
-  /** Removes a specific fish (landed or stolen) and arms its point's respawn. */
+  /** Removes a caught fish (landed or stolen) and arms its point's respawn. */
   remove(target: Fish): void {
     const i = this.fish.indexOf(target)
     if (i === -1) {
       return
     }
     this.fish.splice(i, 1)
-    this.releaseOwnership(target)
+    this.releaseOwnership(target, true)
     target.destroy()
   }
 
@@ -87,7 +88,11 @@ export class SpawnPointSystem implements FishPopulation {
     if (point.def.enabled === false || !point.fishDef) {
       return
     }
-    if (point.aliveCount >= point.def.maxAlive || this.elapsedMs < point.nextSpawnAtMs) {
+    if (
+      point.aliveCount >= point.def.maxAlive ||
+      this.elapsedMs < point.nextSpawnAtMs ||
+      this.pointHasHookedFish(point)
+    ) {
       return
     }
     // Respect reachable depth + only activate near the camera (perf).
@@ -112,7 +117,7 @@ export class SpawnPointSystem implements FishPopulation {
     this.fish.push(fish)
     this.ownerOf.set(fish, point)
     point.aliveCount += 1
-    point.nextSpawnAtMs = this.elapsedMs + point.def.respawnMs
+    point.nextSpawnAtMs = this.elapsedMs + this.respawnMsFor(point)
   }
 
   private despawnOffscreen(): void {
@@ -127,21 +132,36 @@ export class SpawnPointSystem implements FishPopulation {
         f.x > view.right + SpawnConfig.despawnOffscreenMargin
       ) {
         this.fish.splice(i, 1)
-        this.releaseOwnership(f)
+        this.releaseOwnership(f, false)
         f.destroy()
       }
     }
   }
 
-  /** Frees a point's slot and starts its respawn cooldown from now. */
-  private releaseOwnership(fish: Fish): void {
+  /** Frees a point's slot; optionally arms respawn after a catch. */
+  private releaseOwnership(fish: Fish, armRespawn: boolean): void {
     const point = this.ownerOf.get(fish)
     if (!point) {
       return
     }
     this.ownerOf.delete(fish)
     point.aliveCount = Math.max(0, point.aliveCount - 1)
-    point.nextSpawnAtMs = this.elapsedMs + point.def.respawnMs
+    if (armRespawn) {
+      point.nextSpawnAtMs = this.elapsedMs + this.respawnMsFor(point)
+    }
+  }
+
+  private pointHasHookedFish(point: PointRuntime): boolean {
+    for (const [fish, owner] of this.ownerOf) {
+      if (owner === point && fish.isHooked) {
+        return true
+      }
+    }
+    return false
+  }
+
+  private respawnMsFor(point: PointRuntime): number {
+    return point.fishDef?.respawnMs ?? FishConfig.speciesRespawn.defaultMs
   }
 
   private activationRect(): Phaser.Geom.Rectangle {

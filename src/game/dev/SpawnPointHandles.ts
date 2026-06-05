@@ -1,7 +1,7 @@
 import Phaser from 'phaser'
-import { FISH_DATA } from '../data/fishData'
 import { LevelEditorConfig } from '../config/LevelEditorConfig'
 import { FishBodySprite } from '../entities/FishBodySprite'
+import type { FishDefinition } from '../types/FishTypes'
 import type { SpawnPointDefinition } from '../types/SpawnPointTypes'
 
 /** Scene-level actions the handles trigger but do not own. */
@@ -33,6 +33,8 @@ export class SpawnPointHandles {
   private readonly callbacks: SpawnPointHandleCallbacks
   private readonly markers = new Map<string, MarkerView>()
   private selectedId: string | null = null
+  private fishCatalog: readonly FishDefinition[] = []
+  private maxRespawnMs = 1
 
   constructor(scene: Phaser.Scene, callbacks: SpawnPointHandleCallbacks) {
     this.scene = scene
@@ -40,7 +42,13 @@ export class SpawnPointHandles {
   }
 
   /** Recreate all markers from the current model (structural changes). */
-  rebuild(points: readonly SpawnPointDefinition[], selectedId: string | null): void {
+  rebuild(
+    points: readonly SpawnPointDefinition[],
+    selectedId: string | null,
+    fishCatalog: readonly FishDefinition[],
+  ): void {
+    this.fishCatalog = fishCatalog
+    this.maxRespawnMs = Math.max(1, ...fishCatalog.map((f) => f.respawnMs))
     this.clear()
     this.selectedId = selectedId
     for (const def of points) {
@@ -54,6 +62,19 @@ export class SpawnPointHandles {
     for (const view of this.markers.values()) {
       this.drawRing(view, view.def.id === id)
     }
+  }
+
+  /** Move a marker to an already-validated world position. */
+  move(id: string, x: number, y: number): void {
+    const view = this.markers.get(id)
+    if (!view) {
+      return
+    }
+    view.container.setPosition(x, y)
+    view.def.x = x
+    view.def.y = y
+    this.drawRing(view, view.def.id === this.selectedId)
+    this.refreshLabel(view)
   }
 
   destroy(): void {
@@ -70,7 +91,7 @@ export class SpawnPointHandles {
   private createMarker(def: SpawnPointDefinition): MarkerView {
     const container = this.scene.add.container(def.x, def.y).setDepth(50)
 
-    const fishDef = FISH_DATA.find((f) => f.id === def.fishId)
+    const fishDef = this.fishCatalog.find((f) => f.id === def.fishId)
     const preview = fishDef
       ? FishBodySprite.create(this.scene, fishDef)
       : this.scene.add.image(0, 0, '__WHITE').setDisplaySize(32, 20)
@@ -90,24 +111,16 @@ export class SpawnPointHandles {
     container.add([ring, preview, label])
     container.setAlpha(def.enabled === false ? LevelEditorConfig.disabledAlpha : 1)
 
-    const radius = LevelEditorConfig.markerHitRadius
-    container
-      .setSize(radius * 2, radius * 2)
-      .setInteractive(new Phaser.Geom.Circle(0, 0, radius), Phaser.Geom.Circle.Contains)
-    this.scene.input.setDraggable(container)
-
     const view: MarkerView = { container, ring, label, def }
     this.drawRing(view, def.id === this.selectedId)
     this.refreshLabel(view)
+    this.applyHitArea(view)
 
     container.on('pointerdown', () => this.callbacks.onSelect(def.id))
     container.on('drag', (_p: Phaser.Input.Pointer, dragX: number, dragY: number) => {
       const x = this.callbacks.snap(dragX)
       const y = this.callbacks.snap(dragY)
-      container.setPosition(x, y)
-      def.x = x
-      def.y = y
-      this.refreshLabel(view)
+      this.move(def.id, x, y)
       this.callbacks.onMove(def.id, x, y)
     })
 
@@ -117,7 +130,20 @@ export class SpawnPointHandles {
   private drawRing(view: MarkerView, selected: boolean): void {
     const cfg = LevelEditorConfig
     view.ring.clear()
+    const fishDef = this.fishCatalog.find((f) => f.id === view.def.fishId)
+    if (fishDef) {
+      this.drawRespawnIndicator(view, fishDef)
+    }
     if (selected) {
+      if (fishDef) {
+        view.ring.lineStyle(
+          cfg.aggressionRangeWidth,
+          cfg.aggressionRangeColor,
+          cfg.aggressionRangeAlpha,
+        )
+        view.ring.strokeCircle(0, 0, fishDef.aggressionRadius)
+      }
+
       const halfRange = view.def.swimRange / 2
       view.ring.lineStyle(cfg.swimRangeWidth, cfg.swimRangeColor, cfg.swimRangeAlpha)
       view.ring.lineBetween(-halfRange, 0, halfRange, 0)
@@ -137,14 +163,66 @@ export class SpawnPointHandles {
     view.container.setAlpha(view.def.enabled === false ? cfg.disabledAlpha : 1)
   }
 
+  private drawRespawnIndicator(view: MarkerView, fishDef: FishDefinition): void {
+    const cfg = LevelEditorConfig.respawnIndicator
+    const x = -cfg.width / 2
+    const y = cfg.y
+    const normalized = Phaser.Math.Clamp(fishDef.respawnMs / this.maxRespawnMs, 0, 1)
+    const fillWidth = Math.max(cfg.height, cfg.width * normalized)
+    const color = Phaser.Display.Color.Interpolate.ColorWithColor(
+      Phaser.Display.Color.ValueToColor(cfg.fastColor),
+      Phaser.Display.Color.ValueToColor(cfg.slowColor),
+      100,
+      Math.round(normalized * 100),
+    )
+    const fillColor = Phaser.Display.Color.GetColor(color.r, color.g, color.b)
+
+    view.ring.fillStyle(cfg.backgroundColor, cfg.backgroundAlpha)
+    view.ring.fillRoundedRect(x, y, cfg.width, cfg.height, cfg.height / 2)
+    view.ring.fillStyle(fillColor, 1)
+    view.ring.fillRoundedRect(x, y, fillWidth, cfg.height, cfg.height / 2)
+    view.ring.lineStyle(1, cfg.outlineColor, cfg.outlineAlpha)
+    view.ring.strokeRoundedRect(x, y, cfg.width, cfg.height, cfg.height / 2)
+  }
+
+  /** Rectangle hit zone sized to include the fish art and the label block. */
+  private applyHitArea(view: MarkerView): void {
+    const area = LevelEditorConfig.markerHitArea
+    const labelBottom = view.label.y + view.label.height
+    const bottom = Math.max(area.bottom, labelBottom + 10)
+    const height = bottom - area.top
+    const width = Math.max(area.halfWidth * 2, view.label.width + 24)
+
+    view.container.disableInteractive()
+    view.container.setInteractive(
+      new Phaser.Geom.Rectangle(-width / 2, area.top, width, height),
+      Phaser.Geom.Rectangle.Contains,
+    )
+    this.scene.input.setDraggable(view.container)
+  }
+
   /** Refresh a marker's label + alpha after a model edit. */
   refreshLabel(view: MarkerView): void {
     const def = view.def
     const off = def.enabled === false ? '  (off)' : ''
-    const fishDef = FISH_DATA.find((f) => f.id === def.fishId)
+    const fishDef = this.fishCatalog.find((f) => f.id === def.fishId)
     const name = fishDef?.displayName ?? def.fishId
-    view.label.setText(`${name}\n×${def.maxAlive}  ${(def.respawnMs / 1000).toFixed(0)}s  swim ${def.swimRange}${off}`)
+    const respawnSec = fishDef ? (fishDef.respawnMs / 1000).toFixed(0) : '?'
+    const aggression = fishDef?.aggressionRadius ?? '?'
+    const speed = fishDef?.speed ?? '?'
+    view.label.setText(
+      `${name}\nspd ${speed}  ×${def.maxAlive}  ${respawnSec}s  swim ${def.swimRange}\naggro ${aggression}${off}`,
+    )
     view.container.setAlpha(def.enabled === false ? LevelEditorConfig.disabledAlpha : 1)
+    this.applyHitArea(view)
+  }
+
+  /** Refresh every marker after species-wide edits like respawn/aggression. */
+  refreshAll(): void {
+    for (const view of this.markers.values()) {
+      this.drawRing(view, view.def.id === this.selectedId)
+      this.refreshLabel(view)
+    }
   }
 
   /** Refresh the marker for a given id after a keyboard edit. */

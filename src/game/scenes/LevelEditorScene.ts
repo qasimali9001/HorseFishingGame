@@ -3,10 +3,14 @@ import { SceneKeys } from './SceneKeys'
 import { loadFishAssets } from '../assets/FishAssets'
 import { FISH_DATA } from '../data/fishData'
 import { SPAWN_POINT_DATA } from '../data/spawnPointData'
+import { FishConfig } from '../config/FishConfig'
 import { LevelEditorConfig } from '../config/LevelEditorConfig'
 import { SpawnConfig } from '../config/SpawnConfig'
 import { WorldConfig, worldRightX } from '../config/WorldConfig'
+import { HorseSpawnMarker } from '../dev/HorseSpawnMarker'
+import { formatLevelEditorExport } from '../dev/LevelEditorExport'
 import { SpawnPointHandles } from '../dev/SpawnPointHandles'
+import type { FishDefinition } from '../types/FishTypes'
 import type { SpawnPointDefinition } from '../types/SpawnPointTypes'
 
 /**
@@ -22,6 +26,9 @@ import type { SpawnPointDefinition } from '../types/SpawnPointTypes'
  */
 export class LevelEditorScene extends Phaser.Scene {
   private points: SpawnPointDefinition[] = []
+  /** Working copy of species tuning (respawn, speed, etc.) edited in the editor. */
+  private fish: FishDefinition[] = []
+  private horseMarker!: HorseSpawnMarker
   private handles!: SpawnPointHandles
   private readout!: Phaser.GameObjects.Text
   private panKeys!: Record<'up' | 'down' | 'left' | 'right', Phaser.Input.Keyboard.Key[]>
@@ -41,17 +48,19 @@ export class LevelEditorScene extends Phaser.Scene {
 
   create(): void {
     this.points = SPAWN_POINT_DATA.map((p) => ({ ...p }))
+    this.fish = FISH_DATA.map((f) => ({ ...f }))
     this.idCounter = this.points.length
 
     this.drawBackdrop()
     this.setupCamera()
+    this.horseMarker = new HorseSpawnMarker(this)
 
     this.handles = new SpawnPointHandles(this, {
       onSelect: (id) => this.select(id),
       onMove: () => this.refreshReadout(),
       snap: (v) => this.snap(v),
     })
-    this.handles.rebuild(this.points, this.selectedId)
+    this.handles.rebuild(this.points, this.selectedId, this.fish)
 
     this.readout = this.add
       .text(12, 12, '', {
@@ -68,7 +77,10 @@ export class LevelEditorScene extends Phaser.Scene {
     this.bindPointer()
     this.refreshReadout()
 
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.handles.destroy())
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.horseMarker.destroy()
+      this.handles.destroy()
+    })
   }
 
   update(_time: number, deltaMs: number): void {
@@ -147,24 +159,31 @@ export class LevelEditorScene extends Phaser.Scene {
       return
     }
     const Codes = Phaser.Input.Keyboard.KeyCodes
-    // WASD + arrow keys both pan the camera.
+    // WASD pans the camera; arrow keys nudge the selected spawn marker.
     this.panKeys = {
-      up: [kb.addKey(Codes.W), kb.addKey(Codes.UP)],
-      down: [kb.addKey(Codes.S), kb.addKey(Codes.DOWN)],
-      left: [kb.addKey(Codes.A), kb.addKey(Codes.LEFT)],
-      right: [kb.addKey(Codes.D), kb.addKey(Codes.RIGHT)],
+      up: [kb.addKey(Codes.W)],
+      down: [kb.addKey(Codes.S)],
+      left: [kb.addKey(Codes.A)],
+      right: [kb.addKey(Codes.D)],
     }
 
+    kb.on('keydown-UP', () => this.nudgeSelected(0, -1))
+    kb.on('keydown-DOWN', () => this.nudgeSelected(0, 1))
+    kb.on('keydown-LEFT', () => this.nudgeSelected(-1, 0))
+    kb.on('keydown-RIGHT', () => this.nudgeSelected(1, 0))
     kb.on('keydown-OPEN_BRACKET', () => this.cycleSpecies(-1))
     kb.on('keydown-CLOSED_BRACKET', () => this.cycleSpecies(1))
-    kb.on('keydown-MINUS', () => this.adjustRespawn(-1))
-    // PLUS is the physical '='/'+' key, so it fires with or without shift.
-    kb.on('keydown-PLUS', () => this.adjustRespawn(1))
+    kb.on('keydown-T', () => this.adjustRespawn(-1))
+    kb.on('keydown-Y', () => this.adjustRespawn(1))
     kb.on('keydown-SEMICOLON', () => this.adjustMaxAlive(-1))
     kb.on('keydown-QUOTES', () => this.adjustMaxAlive(1))
-    kb.on('keydown-T', () => this.toggleEnabled())
+    kb.on('keydown-G', () => this.toggleEnabled())
     kb.on('keydown-Z', () => this.adjustSwimRange(-1))
     kb.on('keydown-X', () => this.adjustSwimRange(1))
+    kb.on('keydown-N', () => this.adjustAggression(-1))
+    kb.on('keydown-M', () => this.adjustAggression(1))
+    kb.on('keydown-COMMA', () => this.adjustSpeed(-1))
+    kb.on('keydown-PERIOD', () => this.adjustSpeed(1))
     kb.on('keydown-F', () => this.toggleAddOnClick())
     kb.on('keydown-DELETE', () => this.deleteSelected())
     kb.on('keydown-BACKSPACE', () => this.deleteSelected())
@@ -206,19 +225,18 @@ export class LevelEditorScene extends Phaser.Scene {
       return // spawn points must sit underwater
     }
     const x = Phaser.Math.Clamp(this.snap(wp.x), WorldConfig.worldLeftX, worldRightX)
-    const fishId = FISH_DATA[this.paletteIndex].id
+    const fishId = this.fish[this.paletteIndex].id
     const def: SpawnPointDefinition = {
       id: this.nextId(),
       x,
       y,
       fishId,
-      respawnMs: SpawnConfig.defaultRespawnMs,
       maxAlive: SpawnConfig.defaultMaxAlive,
       swimRange: LevelEditorConfig.defaultSwimRange,
     }
     this.points.push(def)
     this.selectedId = def.id
-    this.handles.rebuild(this.points, this.selectedId)
+    this.handles.rebuild(this.points, this.selectedId, this.fish)
     this.refreshReadout()
   }
 
@@ -227,7 +245,7 @@ export class LevelEditorScene extends Phaser.Scene {
     // Keep the palette in sync with the selected point's species.
     const def = this.selected()
     if (def) {
-      const idx = FISH_DATA.findIndex((f) => f.id === def.fishId)
+      const idx = this.fish.findIndex((f) => f.id === def.fishId)
       if (idx >= 0) {
         this.paletteIndex = idx
       }
@@ -244,25 +262,61 @@ export class LevelEditorScene extends Phaser.Scene {
 
   /** Cycle species: edits the selected point if any, else the placement palette. */
   private cycleSpecies(dir: number): void {
-    this.paletteIndex = Phaser.Math.Wrap(this.paletteIndex + dir, 0, FISH_DATA.length)
+    this.paletteIndex = Phaser.Math.Wrap(this.paletteIndex + dir, 0, this.fish.length)
     const def = this.selected()
     if (def) {
-      def.fishId = FISH_DATA[this.paletteIndex].id
-      this.handles.rebuild(this.points, this.selectedId)
+      def.fishId = this.fish[this.paletteIndex].id
+      this.handles.rebuild(this.points, this.selectedId, this.fish)
     }
     this.refreshReadout()
   }
 
+  /** Adjust respawn for the selected point's species (global per fish). */
   private adjustRespawn(dir: number): void {
-    const def = this.selected()
-    if (!def) {
+    const species = this.selectedSpecies()
+    if (!species) {
       return
     }
-    def.respawnMs = Math.max(
-      LevelEditorConfig.respawnMinMs,
-      def.respawnMs + dir * LevelEditorConfig.respawnStepMs,
+    const tuning = FishConfig.speciesRespawn
+    species.respawnMs = Math.max(
+      tuning.minMs,
+      species.respawnMs + dir * tuning.editorStepMs,
     )
-    this.handles.refresh(def.id)
+    if (this.selectedId) {
+      this.handles.refreshAll()
+    }
+    this.refreshReadout()
+  }
+
+  /** Adjust swim speed for the selected point's species (global per fish). */
+  private adjustSpeed(dir: number): void {
+    const species = this.selectedSpecies()
+    if (!species) {
+      return
+    }
+    const tuning = FishConfig.speciesSpeed
+    species.speed = Phaser.Math.Clamp(
+      species.speed + dir * tuning.editorStepSpeed,
+      tuning.minSpeed,
+      tuning.maxSpeed,
+    )
+    this.handles.refreshAll()
+    this.refreshReadout()
+  }
+
+  /** Adjust detection radius for the selected point's species (global per fish). */
+  private adjustAggression(dir: number): void {
+    const species = this.selectedSpecies()
+    if (!species) {
+      return
+    }
+    const tuning = FishConfig.speciesAggression
+    species.aggressionRadius = Phaser.Math.Clamp(
+      species.aggressionRadius + dir * tuning.editorStepRadius,
+      tuning.minRadius,
+      tuning.maxRadius,
+    )
+    this.handles.refreshAll()
     this.refreshReadout()
   }
 
@@ -294,6 +348,22 @@ export class LevelEditorScene extends Phaser.Scene {
     this.refreshReadout()
   }
 
+  private nudgeSelected(dx: number, dy: number): void {
+    const def = this.selected()
+    if (!def) {
+      return
+    }
+    const step = LevelEditorConfig.moveStep
+    const x = Phaser.Math.Clamp(def.x + dx * step, WorldConfig.worldLeftX, worldRightX)
+    const y = Phaser.Math.Clamp(
+      def.y + dy * step,
+      WorldConfig.waterlineY + step,
+      WorldConfig.waterlineY + WorldConfig.maxDepth,
+    )
+    this.handles.move(def.id, this.snap(x), this.snap(y))
+    this.refreshReadout()
+  }
+
   private toggleEnabled(): void {
     const def = this.selected()
     if (!def) {
@@ -315,29 +385,19 @@ export class LevelEditorScene extends Phaser.Scene {
     }
     this.points = this.points.filter((p) => p.id !== this.selectedId)
     this.selectedId = null
-    this.handles.rebuild(this.points, this.selectedId)
+    this.handles.rebuild(this.points, this.selectedId, this.fish)
     this.refreshReadout()
   }
 
   // -- export --------------------------------------------------------------
 
   private exportToConsole(): void {
-    const body = this.points
-      .map((p) => {
-        const enabled = p.enabled === false ? ', enabled: false' : ''
-        return `  { id: '${p.id}', x: ${p.x}, y: ${p.y}, fishId: '${p.fishId}', respawnMs: ${p.respawnMs}, maxAlive: ${p.maxAlive}, swimRange: ${p.swimRange}${enabled} },`
-      })
-      .join('\n')
-    const out =
-      "import type { SpawnPointDefinition } from '../types/SpawnPointTypes'\n\n" +
-      'export const SPAWN_POINT_DATA: readonly SpawnPointDefinition[] = [\n' +
-      body +
-      '\n]\n'
-    console.log('[LevelEditor] Paste into src/game/data/spawnPointData.ts:\n\n' + out)
+    const out = formatLevelEditorExport(this.points, this.fish)
+    console.log('[LevelEditor] Paste into data/spawnPointData.ts and data/fishData.ts:\n\n' + out)
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(out).catch(() => undefined)
     }
-    this.flashStatus(`Exported ${this.points.length} points to console`)
+    this.flashStatus(`Exported ${this.points.length} points + ${this.fish.length} fish`)
   }
 
   private flashStatus(message: string): void {
@@ -361,6 +421,14 @@ export class LevelEditorScene extends Phaser.Scene {
     return this.points.find((p) => p.id === this.selectedId)
   }
 
+  private selectedSpecies(): FishDefinition | undefined {
+    const point = this.selected()
+    if (!point) {
+      return undefined
+    }
+    return this.fish.find((f) => f.id === point.fishId)
+  }
+
   private snap(value: number): number {
     const step = LevelEditorConfig.gridStep
     return Math.round(value / step) * step
@@ -373,21 +441,26 @@ export class LevelEditorScene extends Phaser.Scene {
 
   private refreshReadout(): void {
     const def = this.selected()
-    const palette = FISH_DATA[this.paletteIndex]
+    const palette = this.fish[this.paletteIndex]
+    const species = this.selectedSpecies()
     const lines: string[] = [
       'LEVEL EDITOR  (?editor)',
       '',
       `add-on-click: ${this.addOnClick ? 'ON' : 'OFF'}  (F toggles)`,
       `place species: ${palette.displayName} (${palette.id})  depth ${palette.minDepth}-${palette.maxDepth}`,
+      `  speed ${palette.speed}  respawn ${(palette.respawnMs / 1000).toFixed(0)}s  aggro ${palette.aggressionRadius}`,
       `points: ${this.points.length}`,
+      `horse spawn: x:${WorldConfig.surfaceAnchorX}  y:${WorldConfig.waterlineY} (red marker)`,
       '',
     ]
     if (def) {
       lines.push(
         `selected: ${def.id}`,
-        `  fish     ${FISH_DATA.find((f) => f.id === def.fishId)?.displayName ?? def.fishId} (${def.fishId})`,
+        `  fish     ${species?.displayName ?? def.fishId} (${def.fishId})`,
         `  pos      x:${def.x}  y:${def.y}`,
-        `  respawn  ${(def.respawnMs / 1000).toFixed(0)}s`,
+        `  speed    ${species?.speed ?? '?'}  (species-wide)`,
+        `  respawn  ${species ? (species.respawnMs / 1000).toFixed(0) : '?'}s  (species-wide)`,
+        `  aggro    ${species?.aggressionRadius ?? '?'} radius  (species-wide)`,
         `  maxAlive ${def.maxAlive}`,
         `  swim     ${def.swimRange}w  (${Math.round(def.x - def.swimRange / 2)}-${Math.round(def.x + def.swimRange / 2)} x)`,
         `  enabled  ${def.enabled === false ? 'no' : 'yes'}`,
@@ -399,9 +472,10 @@ export class LevelEditorScene extends Phaser.Scene {
       '',
       'click marker  select      drag  move',
       'F  add-on-click mode      click water adds only when ON',
-      'WASD/arrows  pan      wheel  zoom',
-      '[ ]  species      - =  respawn',
-      "; '  maxAlive      T  toggle on/off",
+      'WASD  pan      wheel  zoom      arrows  move selected',
+      '[ ]  species      T Y  species respawn',
+      'N M  species aggression      , .  species speed',
+      "; '  maxAlive      G  toggle on/off",
       'Z X  swim range',
       'DEL  delete      E  export      R  reset',
     )

@@ -14,7 +14,7 @@ export interface FishAIContext {
 /**
  * Drives a deliberately simple bait attraction model:
  *   - every free-swimming fish is attracted to the lure when close enough
- *   - bigger fish have a larger reaction radius and stronger pull
+ *   - each species owns its detection radius (`aggressionRadius` in fishData)
  *
  * This keeps the prototype readable without per-species AI branches. Future
  * behaviors can layer on top once the basic fishing loop feels right.
@@ -40,7 +40,7 @@ export class FishAISystem {
     }
   }
 
-  /** Steers a fish toward bait; larger fish steer harder. */
+  /** Steers a fish toward bait or a hooked fish; larger fish steer harder. */
   private steerTowardBait(
     fish: Fish,
     dx: number,

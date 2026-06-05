@@ -29,6 +29,8 @@ export interface FishDefinition {
   speed: number
   /** World-unit radius in which this fish detects bait or a hooked fish. */
   aggressionRadius: number
+  /** Cooldown before a spawn point of this species may respawn (ms). */
+  respawnMs: number
   /** Body radius in world units (drives visual + hook reach). */
   radius: number
   canBeHooked: boolean

@@ -31,8 +31,16 @@ export const LevelEditorConfig = {
   addOnClickDefault: false,
 
   /** Spawn-point marker visuals. */
-  markerRingRadius: 22,
-  markerHitRadius: 34,
+  markerRingRadius: 26,
+  /**
+   * Rectangular click target covering the fish preview + label (local coords).
+   * The label sits below the spawn point, so a center circle misses most clicks.
+   */
+  markerHitArea: {
+    halfWidth: 96,
+    top: -52,
+    bottom: 92,
+  },
   markerRingColor: 0xffffff,
   markerRingWidth: 2,
   selectedRingColor: 0xffd166,
@@ -41,9 +49,21 @@ export const LevelEditorConfig = {
   labelColor: '#ffffff',
   labelBackground: 'rgba(0,0,0,0.55)',
 
-  /** Keyboard edit steps for the selected point. */
-  respawnStepMs: 1000,
-  respawnMinMs: 1000,
+  /** Mini bar above each marker showing species respawn time at a glance. */
+  respawnIndicator: {
+    width: 70,
+    height: 7,
+    y: -48,
+    backgroundColor: 0x0b1020,
+    backgroundAlpha: 0.75,
+    outlineColor: 0xffffff,
+    outlineAlpha: 0.65,
+    fastColor: 0x54d86a,
+    slowColor: 0xff6b6b,
+  },
+
+  /** Keyboard edit steps for the selected spawn point. */
+  moveStep: 20,
   maxAliveStep: 1,
   maxAliveMin: 1,
   maxAliveMax: 8,
@@ -58,4 +78,25 @@ export const LevelEditorConfig = {
   swimRangeColor: 0xffd166,
   swimRangeAlpha: 0.8,
   swimRangeWidth: 3,
+
+  /** Selected species bait/hooked-fish detection radius visual. */
+  aggressionRangeColor: 0xff6b6b,
+  aggressionRangeAlpha: 0.28,
+  aggressionRangeWidth: 2,
+
+  /** Runtime horse anchor (WorldConfig.surfaceAnchorX on the waterline). */
+  horseSpawn: {
+    depth: 2,
+    color: 0xff6b6b,
+    ringRadius: 32,
+    ringWidth: 3,
+    guideAbove: 140,
+    guideBelow: 100,
+    guideWidth: 2,
+    guideAlpha: 0.55,
+    label: 'horse spawn',
+    labelFontSize: 13,
+    labelColor: '#ffffff',
+    labelBackground: 'rgba(180, 40, 40, 0.75)',
+  },
 } as const

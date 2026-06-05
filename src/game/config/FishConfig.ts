@@ -23,6 +23,28 @@ export const FishConfig = {
 
   /** Reference PNGs face left (+x is tail); flip when swimming right. */
   artFacesLeft: true,
+
+  /** Global per-species respawn tuning (see FishDefinition.respawnMs). */
+  speciesRespawn: {
+    defaultMs: 9000,
+    minMs: 1000,
+    editorStepMs: 1000,
+  },
+
+  /** Global per-species detection radius tuning (see FishDefinition.aggressionRadius). */
+  speciesAggression: {
+    minRadius: 40,
+    maxRadius: 1200,
+    editorStepRadius: 20,
+  },
+
+  /** Global per-species swim speed tuning (see FishDefinition.speed). */
+  speciesSpeed: {
+    defaultSpeed: 55,
+    minSpeed: 10,
+    maxSpeed: 200,
+    editorStepSpeed: 5,
+  },
   /** How often the spawner tries to add a fish while the lure is underwater. */
   spawnIntervalMs: 650,
 

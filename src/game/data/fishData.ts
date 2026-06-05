@@ -3,8 +3,9 @@ import { FishTextures } from '../assets/FishArtCatalog'
 
 /**
  * Nine catchable species matching the bundled reference art (3 small, 3 medium,
- * 3 large). Speed + aggression are global species tuning values; biomeIds gate
- * where each can spawn (see biomeData).
+ * 3 large). Speed, aggression, and respawn are global per-species tuning values
+ * (editable in `?editor` with `,` `.`, `N` `M`, and `T` `Y`);
+ * biomeIds gate where each can spawn (see biomeData).
  */
 export const FISH_DATA: readonly FishDefinition[] = [
   // -- small (shallow) -------------------------------------------------------
@@ -22,6 +23,7 @@ export const FISH_DATA: readonly FishDefinition[] = [
     value: 5,
     speed: 62,
     aggressionRadius: 180,
+    respawnMs: 6000,
     radius: 14,
     canBeHooked: true,
   },
@@ -37,8 +39,9 @@ export const FISH_DATA: readonly FishDefinition[] = [
     maxDepth: 480,
     rarity: 'common',
     value: 7,
-    speed: 70,
+    speed: 100,
     aggressionRadius: 220,
+    respawnMs: 6000,
     radius: 14,
     canBeHooked: true,
   },
@@ -54,8 +57,9 @@ export const FISH_DATA: readonly FishDefinition[] = [
     maxDepth: 380,
     rarity: 'common',
     value: 8,
-    speed: 75,
+    speed: 30,
     aggressionRadius: 160,
+    respawnMs: 7000,
     radius: 15,
     canBeHooked: true,
   },
@@ -75,6 +79,7 @@ export const FISH_DATA: readonly FishDefinition[] = [
     value: 12,
     speed: 53,
     aggressionRadius: 240,
+    respawnMs: 9000,
     radius: 20,
     canBeHooked: true,
   },
@@ -92,6 +97,7 @@ export const FISH_DATA: readonly FishDefinition[] = [
     value: 20,
     speed: 65,
     aggressionRadius: 300,
+    respawnMs: 9000,
     radius: 21,
     canBeHooked: true,
   },
@@ -109,6 +115,7 @@ export const FISH_DATA: readonly FishDefinition[] = [
     value: 22,
     speed: 48,
     aggressionRadius: 220,
+    respawnMs: 11000,
     radius: 22,
     canBeHooked: true,
   },
@@ -126,8 +133,9 @@ export const FISH_DATA: readonly FishDefinition[] = [
     maxDepth: 1700,
     rarity: 'uncommon',
     value: 30,
-    speed: 38,
-    aggressionRadius: 260,
+    speed: 63,
+    aggressionRadius: 720,
+    respawnMs: 14000,
     radius: 30,
     canBeHooked: true,
   },
@@ -145,6 +153,7 @@ export const FISH_DATA: readonly FishDefinition[] = [
     value: 48,
     speed: 57,
     aggressionRadius: 340,
+    respawnMs: 16000,
     radius: 32,
     canBeHooked: true,
   },
@@ -162,6 +171,7 @@ export const FISH_DATA: readonly FishDefinition[] = [
     value: 75,
     speed: 31,
     aggressionRadius: 300,
+    respawnMs: 20000,
     radius: 34,
     canBeHooked: true,
   },

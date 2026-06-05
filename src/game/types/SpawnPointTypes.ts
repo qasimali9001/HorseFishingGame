@@ -16,8 +16,6 @@ export interface SpawnPointDefinition {
   y: number
   /** Which species this point spawns (must exist in fishData). */
   fishId: string
-  /** Cooldown before this point may spawn again after a fish is removed. */
-  respawnMs: number
   /** How many of this point's fish may be alive at once. */
   maxAlive: number
   /** Horizontal patrol width in world units, centered on x. */
