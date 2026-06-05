@@ -16,7 +16,7 @@ export const GameEvents = {
   CATCH_CHUCKED: 'catch-chucked',
   /** Pending catch decision resolved; hide decision UI. */
   CATCH_DECISION_CLEARED: 'catch-decision-cleared',
-  /** A predator stole the hooked fish before landing. payload: { fishId, displayName } */
+  /** A larger fish stole the hooked fish before landing. payload: { fishId, displayName } */
   CATCH_LOST: 'catch-lost',
   /** Current bait tier changed. payload: { baitTier, color, label } */
   BAIT_CHANGED: 'bait-changed',

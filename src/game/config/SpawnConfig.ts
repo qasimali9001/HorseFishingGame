@@ -13,7 +13,7 @@ export const SpawnConfig = {
   mode: 'points' as SpawnMode,
 
   /** Defaults applied to a freshly placed spawn point in the editor. */
-  defaultMaxAlive: 2,
+  defaultMaxAlive: 1,
 
   /**
    * A point only spawns while it lies within the camera view expanded by this

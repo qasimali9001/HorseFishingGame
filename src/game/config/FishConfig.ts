@@ -99,4 +99,22 @@ export const FishConfig = {
     minVerticalSpeed: 18,
     maxVerticalSpeed: 70,
   },
+
+  /** When aggro drops, fish drift back to their spawn/home path. */
+  returnHome: {
+    /** Horizontal steering back toward the initial spawn point (per 1/60s). */
+    steerResponse: 0.035,
+    /** Return speed multiplier relative to the species' normal swim speed. */
+    speedScale: 0.85,
+    /** Stop forcing horizontal return once close enough to resume patrol. */
+    horizontalTolerance: 20,
+    /** Max vertical swim-line recovery speed (world units / second). */
+    verticalSpeed: 55,
+  },
+
+  /** Larger free-swimming fish can steal smaller fish from the hook. */
+  hookedPredation: {
+    /** Extra world-unit reach added to predator radius + prey radius. */
+    bitePadding: 10,
+  },
 } as const

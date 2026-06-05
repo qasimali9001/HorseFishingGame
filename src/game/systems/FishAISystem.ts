@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
 import { FishConfig } from '../config/FishConfig'
+import { canEatFishSize } from '../utils/FishSizeRank'
 import type { Fish } from '../entities/Fish'
 
 export interface FishAIContext {
@@ -13,12 +14,13 @@ export interface FishAIContext {
 
 /**
  * Drives a deliberately simple bait attraction model:
- *   - every free-swimming fish is attracted to the lure when close enough
+ *   - every free-swimming fish is attracted to bait when close enough
+ *   - larger fish can also chase smaller fish once they are hooked
  *   - each species owns its detection radius (`aggressionRadius` in fishData)
  *
  * This keeps the prototype readable without per-species AI branches. Future
  * behaviors can layer on top once the basic fishing loop feels right.
- * Integration itself stays in the Fish entity (`applySteer` + `update`).
+ * Integration itself stays in the Fish entity (`applySteer` / `returnHome`).
  */
 export class FishAISystem {
   update(dtSec: number, fish: readonly Fish[], ctx: FishAIContext): void {
@@ -34,6 +36,8 @@ export class FishAISystem {
       const target = this.closestStimulus(f, ctx)
       if (target) {
         this.steerTowardBait(f, target.dx, target.dy, steerAlpha, dtSec)
+      } else {
+        f.returnHome(dtSec)
       }
 
       f.update(dtSec)
@@ -79,7 +83,7 @@ export class FishAISystem {
       const dy = ctx.lureY - fish.y
       candidates.push({ dx, dy, dist: Math.hypot(dx, dy) })
     }
-    if (ctx.hookedFish) {
+    if (ctx.hookedFish && this.canEatHookedFish(fish, ctx.hookedFish)) {
       const dx = ctx.hookedFish.x - fish.x
       const dy = ctx.hookedFish.y - fish.y
       candidates.push({ dx, dy, dist: Math.hypot(dx, dy) })
@@ -99,5 +103,9 @@ export class FishAISystem {
       0,
       1,
     )
+  }
+
+  private canEatHookedFish(predator: Fish, prey: Fish): boolean {
+    return canEatFishSize(predator.def.sizeTier, prey.def.sizeTier)
   }
 }

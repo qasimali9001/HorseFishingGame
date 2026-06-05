@@ -11,7 +11,7 @@ export type FishMode = 'swimming' | 'hooked'
 /**
  * One fish. Owns its own visual + swim pose + movement integration. While
  * swimming it drifts horizontally with a soft vertical wobble; FishAISystem may
- * steer it toward bait (see `applySteer`); once hooked it follows
+ * steer it toward bait (see `applySteer`) or back home; once hooked it follows
  * the lure. It knows nothing about spawning rules, collision, or economy.
  */
 export class Fish {
@@ -24,6 +24,8 @@ export class Fish {
   private readonly swimSpeedValue: number
   private readonly swimBounds: FishSwimBounds
   private readonly hookedMouthLead: number
+  private readonly homeX: number
+  private readonly homeY: number
   private baseY: number
   private wobbleTime = Math.random() * Math.PI * 2
   private hangTime = 0
@@ -40,6 +42,8 @@ export class Fish {
     },
   ) {
     this.def = def
+    this.homeX = x
+    this.homeY = y
     this.baseY = y
     this.swimSpeedValue = def.speed
     this.swimBounds = swimBounds
@@ -102,6 +106,29 @@ export class Fish {
       return
     }
     this.vx = Phaser.Math.Linear(this.vx, desiredVx, steerAlpha)
+    this.baseY = Phaser.Math.Clamp(
+      this.baseY + baseYDelta,
+      WorldConfig.waterlineY + 8,
+      WorldConfig.waterlineY + WorldConfig.maxDepth,
+    )
+  }
+
+  /** Recover from bait/hooked-fish aggro and drift back to the original path. */
+  returnHome(dtSec: number): void {
+    if (this.modeValue !== 'swimming') {
+      return
+    }
+
+    const cfg = FishConfig.returnHome
+    const dx = this.homeX - this.container.x
+    if (Math.abs(dx) > cfg.horizontalTolerance) {
+      const steerAlpha = 1 - Math.pow(1 - cfg.steerResponse, dtSec * 60)
+      const desiredVx = (Math.sign(dx) || 1) * this.swimSpeedValue * cfg.speedScale
+      this.vx = Phaser.Math.Linear(this.vx, desiredVx, steerAlpha)
+    }
+
+    const dy = this.homeY - this.baseY
+    const baseYDelta = Phaser.Math.Clamp(dy, -cfg.verticalSpeed * dtSec, cfg.verticalSpeed * dtSec)
     this.baseY = Phaser.Math.Clamp(
       this.baseY + baseYDelta,
       WorldConfig.waterlineY + 8,

@@ -16,15 +16,16 @@ import type {
 interface PointRuntime {
   readonly def: SpawnPointDefinition
   readonly fishDef: FishDefinition | undefined
-  aliveCount: number
-  /** Earliest elapsed time (ms) at which this point may spawn again. */
-  nextSpawnAtMs: number
+  activeFish: Fish | null
+  /** Earliest elapsed time (ms) at which this point may spawn after its fish is removed. */
+  respawnAtMs: number
 }
 
 /**
  * Population from fixed, hand-authored spawn points (see spawnPointData /
- * `?editor`). Each point owns the fish it spawns. Spawn slots are paced by the
- * species respawn timer so a `maxAlive: 2` point does not create instant twins.
+ * `?editor`). Each point owns one active fish at a time. Its respawn timer is
+ * armed only when that fish is caught or stolen, so a point cannot refill while
+ * its previous fish is still swimming.
  * Fish that swim offscreen free their slot without restarting that timer.
  *
  * Implements the same `FishPopulation` contract as the legacy procedural
@@ -44,9 +45,9 @@ export class SpawnPointSystem implements FishPopulation {
     this.points = points.map((def) => ({
       def,
       fishDef: FISH_DATA.find((f) => f.id === def.fishId),
-      aliveCount: 0,
+      activeFish: null,
       // Stagger the first spawn so points do not all pop on frame one.
-      nextSpawnAtMs: Phaser.Math.Between(0, SpawnConfig.initialSpawnJitterMs),
+      respawnAtMs: Phaser.Math.Between(0, SpawnConfig.initialSpawnJitterMs),
     }))
   }
 
@@ -89,9 +90,8 @@ export class SpawnPointSystem implements FishPopulation {
       return
     }
     if (
-      point.aliveCount >= point.def.maxAlive ||
-      this.elapsedMs < point.nextSpawnAtMs ||
-      this.pointHasHookedFish(point)
+      point.activeFish ||
+      this.elapsedMs < point.respawnAtMs
     ) {
       return
     }
@@ -116,8 +116,7 @@ export class SpawnPointSystem implements FishPopulation {
     )
     this.fish.push(fish)
     this.ownerOf.set(fish, point)
-    point.aliveCount += 1
-    point.nextSpawnAtMs = this.elapsedMs + this.respawnMsFor(point)
+    point.activeFish = fish
   }
 
   private despawnOffscreen(): void {
@@ -145,19 +144,12 @@ export class SpawnPointSystem implements FishPopulation {
       return
     }
     this.ownerOf.delete(fish)
-    point.aliveCount = Math.max(0, point.aliveCount - 1)
+    if (point.activeFish === fish) {
+      point.activeFish = null
+    }
     if (armRespawn) {
-      point.nextSpawnAtMs = this.elapsedMs + this.respawnMsFor(point)
+      point.respawnAtMs = this.elapsedMs + this.respawnMsFor(point)
     }
-  }
-
-  private pointHasHookedFish(point: PointRuntime): boolean {
-    for (const [fish, owner] of this.ownerOf) {
-      if (owner === point && fish.isHooked) {
-        return true
-      }
-    }
-    return false
   }
 
   private respawnMsFor(point: PointRuntime): number {

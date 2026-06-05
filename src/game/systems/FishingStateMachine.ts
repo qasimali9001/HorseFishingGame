@@ -47,6 +47,8 @@ export class FishingStateMachine {
   private state: FishingState = FishingState.IdleAtSurface
   private enteredWater = false
   private hookedFish: Fish | null = null
+  /** False after a hooked fish is eaten; restored only after docking/recasting. */
+  private hookHasBait = true
   /** True between a fresh press (in idle) and its release: the cast is charging. */
   private charging = false
   private sellRequested = false
@@ -112,7 +114,7 @@ export class FishingStateMachine {
     this.deps.fishAI.update(dtSec, this.deps.spawn.list, {
       lureX: this.deps.lure.x,
       lureY: this.deps.lure.y,
-      lureActive: fishing,
+      lureActive: fishing && this.hookHasBait && !this.hookedFish,
       hookedFish: this.hookedFish,
     })
 
@@ -123,6 +125,7 @@ export class FishingStateMachine {
     // Predators chase the hooked fish; a successful steal resolves CatchLost.
     const stoleCatch = this.deps.predators.update(dtSec, {
       hookedFish: this.hookedFish,
+      fish: this.deps.spawn.list,
       canSpawn: fishing,
       maxDepth: spawnDepth,
     })
@@ -142,7 +145,7 @@ export class FishingStateMachine {
     return requested
   }
 
-  /** A predator stole the hooked fish: announce it and drop the catch. */
+  /** A larger fish ate the hooked fish: announce it and leave the hook baitless. */
   private loseCatch(): void {
     const fish = this.hookedFish
     if (!fish) {
@@ -151,9 +154,8 @@ export class FishingStateMachine {
     EventBus.emit(GameEvents.CATCH_LOST, { fishId: fish.def.id, displayName: fish.def.displayName })
     this.deps.spawn.remove(fish)
     this.hookedFish = null
-    if (this.deps.lure.isActive) {
-      this.deps.lure.setBaitVisible(true)
-    }
+    this.hookHasBait = false
+    this.deps.lure.setBaitVisible(false)
     this.setState(FishingState.CatchLost)
   }
 
@@ -209,6 +211,7 @@ export class FishingStateMachine {
     const solution = CastPower.resolve(holdMs, this.deps.stats.castPowerMultiplier)
     this.linePayout.beginCast(solution.power01, this.deps.stats.maxDepth)
     this.enteredWater = false
+    this.hookHasBait = true
     this.deps.camera.setMode(CameraMode.Casting)
 
     this.deps.horse.playCastAnimation(() => {
@@ -239,6 +242,9 @@ export class FishingStateMachine {
         dtSec,
         this.deps.input.isReeling,
       )
+      return
+    }
+    if (!this.hookHasBait) {
       return
     }
     const caught = this.deps.hook.findCatch(
@@ -287,6 +293,7 @@ export class FishingStateMachine {
     }
 
     this.deps.lure.dock()
+    this.hookHasBait = true
     this.enteredWater = false
     this.linePayout.reset()
     this.deps.biomes.reset()
