@@ -1,8 +1,10 @@
 import Phaser from 'phaser'
 import { HorseConfig } from '../config/HorseConfig'
 import { DebugConfig } from '../config/DebugConfig'
+import { EventBus } from '../events/EventBus'
+import { GameEvents } from '../events/GameEvents'
 import { FishingRod } from './FishingRod'
-import type { RodStats } from '../types/RodTypes'
+import type { RodDefinition, RodStats } from '../types/RodTypes'
 import type { HorseRigLayout } from '../types/HorseTypes'
 
 /**
@@ -66,6 +68,8 @@ export class PlayerHorse {
     this.setAnchorsVisible(DebugConfig.showAnchors)
     this.startBob()
     this.startHeadWobble()
+
+    EventBus.on(GameEvents.ROD_EQUIPPED, this.onRodEquipped)
   }
 
   /** World-space mouth attachment point. */
@@ -82,6 +86,13 @@ export class PlayerHorse {
   /** Rod-derived stats, read by the fishing system (never stored on the horse). */
   get rodStats(): RodStats {
     return this.rod.stats
+  }
+
+  /** Apply a new rod definition to the rig (texture, length, and stat modifiers). */
+  equipRod(definition: RodDefinition): void {
+    this.layout.rodLengthPx = definition.lengthPx
+    this.rod.setRodDefinition(definition)
+    this.applyLayout()
   }
 
   /**
@@ -213,9 +224,14 @@ export class PlayerHorse {
   }
 
   destroy(): void {
+    EventBus.off(GameEvents.ROD_EQUIPPED, this.onRodEquipped)
     this.bobTween?.stop()
     this.headWobbleTween?.stop()
     this.root.destroy()
+  }
+
+  private readonly onRodEquipped = (payload: { rod: RodDefinition }): void => {
+    this.equipRod(payload.rod)
   }
 
   private startBob(): void {

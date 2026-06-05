@@ -1,95 +1,24 @@
-import type { ShopCategoryDefinition, ShopUpgradeDefinition } from '../types/ShopTypes'
+import type { ShopCategoryDefinition } from '../types/ShopTypes'
 
 export const ShopCategories: readonly ShopCategoryDefinition[] = [
   {
     id: 'rods',
     title: 'Rods',
-    description: 'Casting and reel hardware upgrades.',
+    description: 'Pick a rod to equip. More rods coming soon.',
   },
   {
     id: 'boats',
     title: 'Boats',
-    description: 'Future surface mobility branch.',
-    placeholderMessage: 'Boat upgrades are placeholder-only for now.',
+    description: 'Surface rides for your horse. More boats coming soon.',
   },
   {
     id: 'lures',
     title: 'Lures',
-    description: 'Depth and hook-control tuning upgrades.',
+    description: 'Pick a lure to equip. More lures coming soon.',
   },
   {
-    id: 'gadgets',
-    title: 'Gadgets',
-    description: 'Assist tools for consistency and depth.',
+    id: 'investments',
+    title: 'Investments',
+    description: 'Long-term upgrades. More options coming soon.',
   },
 ] as const
-
-export const ShopUpgrades: readonly ShopUpgradeDefinition[] = [
-  {
-    id: 'rod-caster',
-    categoryId: 'rods',
-    title: 'Stronger Rod Spine',
-    description: 'Increase cast launch force.',
-    effectId: 'castPower',
-    effectPerLevel: 0.1,
-    maxLevel: 6,
-    baseCost: 90,
-    costMultiplier: 1.45,
-  },
-  {
-    id: 'rod-reel',
-    categoryId: 'rods',
-    title: 'Faster Reel Gear',
-    description: 'Increase reel speed multiplier.',
-    effectId: 'reelSpeed',
-    effectPerLevel: 0.08,
-    maxLevel: 6,
-    baseCost: 100,
-    costMultiplier: 1.5,
-  },
-  {
-    id: 'lure-weight',
-    categoryId: 'lures',
-    title: 'Weighted Lure Core',
-    description: 'Increase reachable depth budget.',
-    effectId: 'maxDepth',
-    effectPerLevel: 35,
-    maxLevel: 8,
-    baseCost: 120,
-    costMultiplier: 1.5,
-  },
-  {
-    id: 'lure-balance',
-    categoryId: 'lures',
-    title: 'Balanced Hook Rig',
-    description: 'Small cast power bonus from cleaner release.',
-    effectId: 'castPower',
-    effectPerLevel: 0.06,
-    maxLevel: 5,
-    baseCost: 130,
-    costMultiplier: 1.5,
-  },
-  {
-    id: 'gadget-winch-assist',
-    categoryId: 'gadgets',
-    title: 'Winch Assist',
-    description: 'Additional reel control efficiency.',
-    effectId: 'reelSpeed',
-    effectPerLevel: 0.05,
-    maxLevel: 6,
-    baseCost: 140,
-    costMultiplier: 1.55,
-  },
-  {
-    id: 'gadget-echo-meter',
-    categoryId: 'gadgets',
-    title: 'Echo Depth Meter',
-    description: 'Increase safe exploration depth.',
-    effectId: 'maxDepth',
-    effectPerLevel: 45,
-    maxLevel: 7,
-    baseCost: 160,
-    costMultiplier: 1.55,
-  },
-] as const
-

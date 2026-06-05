@@ -63,9 +63,8 @@ export class SpawnPointSystem implements FishPopulation {
       return
     }
     const activation = this.activationRect()
-    const centerX = this.scene.cameras.main.worldView.centerX
     for (const point of this.points) {
-      this.tryPointSpawn(point, ctx, activation, centerX)
+      this.tryPointSpawn(point, ctx, activation)
     }
   }
 
@@ -84,7 +83,6 @@ export class SpawnPointSystem implements FishPopulation {
     point: PointRuntime,
     ctx: FishSpawnContext,
     activation: Phaser.Geom.Rectangle,
-    centerX: number,
   ): void {
     if (point.def.enabled === false || !point.fishDef) {
       return
@@ -104,8 +102,8 @@ export class SpawnPointSystem implements FishPopulation {
       return
     }
 
-    // Head toward the visible area so the fresh fish swims in rather than out.
-    const dir: 1 | -1 = point.def.x <= centerX ? 1 : -1
+    // Patrol locally within the spawn point's swim range (not toward the camera).
+    const dir: 1 | -1 = Math.random() < 0.5 ? 1 : -1
     const fish = new Fish(
       this.scene,
       point.fishDef,

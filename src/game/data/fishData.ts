@@ -2,10 +2,10 @@ import type { FishDefinition } from '../types/FishTypes'
 import { FishTextures } from '../assets/FishArtCatalog'
 
 /**
- * Nine catchable species matching the bundled reference art (3 small, 3 medium,
- * 3 large). Speed, aggression, and respawn are global per-species tuning values
- * (editable in `?editor` with `,` `.`, `N` `M`, and `T` `Y`);
- * biomeIds gate where each can spawn (see biomeData).
+ * Catchable species matching the bundled reference art. Speed, aggression, and
+ * respawn are global per-species tuning values (editable in `?editor` with `,`
+ * `.`, `N` `M`, and `T` `Y`). Spawn depth is set per spawn point in
+ * spawnPointData, not here.
  */
 export const FISH_DATA: readonly FishDefinition[] = [
   // -- small (shallow) -------------------------------------------------------
@@ -17,8 +17,6 @@ export const FISH_DATA: readonly FishDefinition[] = [
     requiredBaitTier: 'small',
     color: 0xf4a259,
     biomeIds: ['sunny-shores'],
-    minDepth: 40,
-    maxDepth: 420,
     rarity: 'common',
     value: 5,
     speed: 62,
@@ -35,8 +33,6 @@ export const FISH_DATA: readonly FishDefinition[] = [
     requiredBaitTier: 'small',
     color: 0x9ad1e6,
     biomeIds: ['sunny-shores', 'kelp-forest'],
-    minDepth: 80,
-    maxDepth: 480,
     rarity: 'common',
     value: 7,
     speed: 100,
@@ -53,8 +49,6 @@ export const FISH_DATA: readonly FishDefinition[] = [
     requiredBaitTier: 'small',
     color: 0x8a9a6b,
     biomeIds: ['sunny-shores'],
-    minDepth: 60,
-    maxDepth: 380,
     rarity: 'common',
     value: 8,
     speed: 30,
@@ -73,8 +67,6 @@ export const FISH_DATA: readonly FishDefinition[] = [
     requiredBaitTier: 'medium',
     color: 0x4a90d9,
     biomeIds: ['sunny-shores', 'kelp-forest'],
-    minDepth: 300,
-    maxDepth: 900,
     rarity: 'common',
     value: 12,
     speed: 53,
@@ -91,8 +83,6 @@ export const FISH_DATA: readonly FishDefinition[] = [
     requiredBaitTier: 'medium',
     color: 0x6b8f4e,
     biomeIds: ['kelp-forest'],
-    minDepth: 520,
-    maxDepth: 1100,
     rarity: 'uncommon',
     value: 20,
     speed: 65,
@@ -109,8 +99,6 @@ export const FISH_DATA: readonly FishDefinition[] = [
     requiredBaitTier: 'medium',
     color: 0xf08f9b,
     biomeIds: ['kelp-forest', 'twilight-waters'],
-    minDepth: 420,
-    maxDepth: 1200,
     rarity: 'uncommon',
     value: 22,
     speed: 48,
@@ -129,8 +117,6 @@ export const FISH_DATA: readonly FishDefinition[] = [
     requiredBaitTier: 'large',
     color: 0x8a7bd8,
     biomeIds: ['kelp-forest', 'twilight-waters'],
-    minDepth: 650,
-    maxDepth: 1700,
     rarity: 'uncommon',
     value: 30,
     speed: 63,
@@ -147,8 +133,6 @@ export const FISH_DATA: readonly FishDefinition[] = [
     requiredBaitTier: 'large',
     color: 0x5b7fc7,
     biomeIds: ['twilight-waters', 'midnight-trench'],
-    minDepth: 900,
-    maxDepth: 2200,
     rarity: 'rare',
     value: 48,
     speed: 57,
@@ -165,14 +149,30 @@ export const FISH_DATA: readonly FishDefinition[] = [
     requiredBaitTier: 'large',
     color: 0x8f9fcf,
     biomeIds: ['twilight-waters', 'midnight-trench', 'industrial-graveyard'],
-    minDepth: 1200,
-    maxDepth: 3200,
     rarity: 'rare',
     value: 75,
     speed: 31,
     aggressionRadius: 300,
     respawnMs: 20000,
     radius: 34,
+    canBeHooked: true,
+  },
+
+  // -- very large (abyssal) ---------------------------------------------------
+  {
+    id: 'horse-fish',
+    displayName: 'Horse Fish',
+    artId: FishTextures.horseFish,
+    sizeTier: 'veryLarge',
+    requiredBaitTier: 'large',
+    color: 0x3f86d1,
+    biomeIds: ['the-maw'],
+    rarity: 'legendary',
+    value: 150,
+    speed: 47,
+    aggressionRadius: 1040,
+    respawnMs: 30000,
+    radius: 55,
     canBeHooked: true,
   },
 ] as const

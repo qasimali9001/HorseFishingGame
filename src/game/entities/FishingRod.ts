@@ -24,7 +24,7 @@ export class FishingRod {
     this.definition = definition
     this.root = scene.add.container(0, 0)
 
-    this.shaft = scene.add.image(0, 0, RodConfig.textureKey).setOrigin(0, 0.5)
+    this.shaft = scene.add.image(0, 0, definition.textureKey).setOrigin(0, 0.5)
     this.tip = scene.add
       .circle(0, 0, RodConfig.tipRadius, RodConfig.tipColor)
       .setVisible(DebugConfig.showAnchors)
@@ -58,9 +58,10 @@ export class FishingRod {
     this.tip.setVisible(visible)
   }
 
-  /** Swap rod data (visual length + stats). Used by rod upgrades later. */
+  /** Swap rod data (visual + stats). Used when the player equips a new rod. */
   setRodDefinition(definition: RodDefinition): void {
     this.definition = definition
+    this.shaft.setTexture(definition.textureKey)
     this.setDisplayLength(definition.lengthPx)
   }
 }

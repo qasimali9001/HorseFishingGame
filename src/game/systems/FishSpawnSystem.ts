@@ -14,7 +14,7 @@ export type SpawnContext = FishSpawnContext
  * Legacy procedural population around the camera view. Fish swim in from just
  * offscreen, cross the visible area, and despawn once well past it, so we only
  * ever pay for a handful of fish near gameplay regardless of world size. Spawn
- * eligibility is gated by depth AND biome (see BiomeSystem). Movement is owned
+ * eligibility is gated by biome (see BiomeSystem). Movement is owned
  * by FishAISystem -- this system only manages the population.
  *
  * Kept as a parity fallback behind `SpawnConfig.mode`; the default population
@@ -80,21 +80,17 @@ export class FishSpawnSystem implements FishPopulation {
       return
     }
 
-    // Only species native to the biome(s) on screen, and within the depth band.
+    // Only species native to the biome(s) visible on screen.
     const allowedIds = new Set(
       this.biomes.biomesInRange(loDepth, hiDepth).flatMap((b) => b.fishIds),
     )
-    const candidates = FISH_DATA.filter(
-      (d) => d.minDepth <= hiDepth && d.maxDepth >= loDepth && allowedIds.has(d.id),
-    )
+    const candidates = FISH_DATA.filter((d) => allowedIds.has(d.id))
     if (candidates.length === 0) {
       return
     }
     const def: FishDefinition = Phaser.Utils.Array.GetRandom(candidates)
 
-    const dLo = Math.max(def.minDepth, loDepth)
-    const dHi = Math.min(def.maxDepth, hiDepth)
-    const y = WorldConfig.waterlineY + Phaser.Math.Between(dLo, dHi)
+    const y = WorldConfig.waterlineY + Phaser.Math.Between(loDepth, hiDepth)
 
     const fromLeft = Math.random() < 0.5
     let x = fromLeft ? view.left - FishConfig.spawnOffscreenMargin : view.right + FishConfig.spawnOffscreenMargin

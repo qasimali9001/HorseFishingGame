@@ -18,10 +18,14 @@ export const GameEvents = {
   CATCH_DECISION_CLEARED: 'catch-decision-cleared',
   /** A larger fish stole the hooked fish before landing. payload: { fishId, displayName } */
   CATCH_LOST: 'catch-lost',
+  /** UI requests current bait state. */
+  BAIT_STATE_REQUESTED: 'bait-state-requested',
   /** Current bait tier changed. payload: { baitTier, color, label } */
   BAIT_CHANGED: 'bait-changed',
   /** The lure entered a new depth biome. payload: { biomeId, displayName } */
   BIOME_CHANGED: 'biome-changed',
+  /** UI requests current money state. */
+  MONEY_STATE_REQUESTED: 'money-state-requested',
   /** Player money changed. payload: { money } */
   MONEY_CHANGED: 'money-changed',
   /** UI requests current shop state snapshot. */
@@ -32,6 +36,22 @@ export const GameEvents = {
   SHOP_PURCHASE_REQUESTED: 'shop-purchase-requested',
   /** Shop feedback toast/notices. payload: { message, tone } */
   SHOP_PURCHASE_FEEDBACK: 'shop-purchase-feedback',
+  /** UI requests buying a rod. payload: { rodId } */
+  SHOP_ROD_PURCHASE_REQUESTED: 'shop-rod-purchase-requested',
+  /** UI requests equipping an owned rod. payload: { rodId } */
+  SHOP_ROD_EQUIP_REQUESTED: 'shop-rod-equip-requested',
+  /** UI requests buying a catalog item. payload: { catalogId, itemId } */
+  SHOP_ITEM_PURCHASE_REQUESTED: 'shop-item-purchase-requested',
+  /** UI requests equipping a catalog item. payload: { catalogId, itemId } */
+  SHOP_ITEM_EQUIP_REQUESTED: 'shop-item-equip-requested',
+  /** A shop catalog changed. payload: { catalogId } */
+  SHOP_CATALOG_CHANGED: 'shop-catalog-changed',
+  /** Rod shop rows changed. payload: { rods: ShopRodState[] } */
+  SHOP_RODS_CHANGED: 'shop-rods-changed',
+  /** Equipped rod changed on the horse. payload: { rod: RodDefinition } */
+  ROD_EQUIPPED: 'rod-equipped',
+  /** Equipped lure changed on the hook. payload: { lure: LureDefinition } */
+  LURE_EQUIPPED: 'lure-equipped',
   /** Camera mode changed (debug/diagnostics). payload: { mode } */
   CAMERA_MODE_CHANGED: 'camera-mode-changed',
   /** Per-frame debug snapshot for the overlay. payload: { depth, cameraMode } */

@@ -1,6 +1,7 @@
 import Phaser from 'phaser'
 import { SceneKeys } from './SceneKeys'
 import { loadHorseAssets, HorseTextures } from '../assets/HorseAssets'
+import { loadRodAssets } from '../assets/RodAssets'
 import { PlayerHorse } from '../entities/PlayerHorse'
 import { RigTuner } from '../dev/RigTuner'
 import { RigTestConfig } from '../config/RigTestConfig'
@@ -27,6 +28,7 @@ export class HorseRigTestScene extends Phaser.Scene {
 
   preload(): void {
     loadHorseAssets(this)
+    loadRodAssets(this)
   }
 
   create(): void {

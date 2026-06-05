@@ -105,6 +105,7 @@ export class UIScene extends Phaser.Scene {
 
     const onMoney = (p: MoneyPayload) => this.moneyText?.setText(`$${p.money}`)
     EventBus.on(GameEvents.MONEY_CHANGED, onMoney)
+    EventBus.emit(GameEvents.MONEY_STATE_REQUESTED)
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => EventBus.off(GameEvents.MONEY_CHANGED, onMoney))
   }
 
@@ -192,6 +193,7 @@ export class UIScene extends Phaser.Scene {
 
     const onBait = (p: BaitChangedPayload) => this.baitText?.setText(`Bait: ${p.label}`)
     EventBus.on(GameEvents.BAIT_CHANGED, onBait)
+    EventBus.emit(GameEvents.BAIT_STATE_REQUESTED)
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => EventBus.off(GameEvents.BAIT_CHANGED, onBait))
   }
 
@@ -294,8 +296,11 @@ export class UIScene extends Phaser.Scene {
   private createShopUI(): void {
     this.shopWindow = new ShopWindow(this, {
       onCloseRequested: () => this.setShopOpen(false),
-      onPurchaseRequested: (upgradeId) => {
-        EventBus.emit(GameEvents.SHOP_PURCHASE_REQUESTED, { upgradeId })
+      onCatalogPurchaseRequested: (catalogId, itemId) => {
+        EventBus.emit(GameEvents.SHOP_ITEM_PURCHASE_REQUESTED, { catalogId, itemId })
+      },
+      onCatalogEquipRequested: (catalogId, itemId) => {
+        EventBus.emit(GameEvents.SHOP_ITEM_EQUIP_REQUESTED, { catalogId, itemId })
       },
     })
     this.shopButton = new ShopToggleButton(this, () => this.toggleShop())

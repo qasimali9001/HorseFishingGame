@@ -281,6 +281,7 @@ export class FishingStateMachine {
 
     if (this.hookedFish) {
       const fish = this.hookedFish
+      this.deps.bait.consumeOnCatch()
       EventBus.emit(GameEvents.CATCH_LANDED, {
         fishId: fish.def.id,
         displayName: fish.def.displayName,

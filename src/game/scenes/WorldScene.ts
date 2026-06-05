@@ -22,6 +22,7 @@ import { FishAISystem } from '../systems/FishAISystem'
 import { PredatorSystem } from '../systems/PredatorSystem'
 import { HookCollisionSystem } from '../systems/HookCollisionSystem'
 import { EconomySystem } from '../systems/EconomySystem'
+import { GameSaveSystem } from '../systems/GameSaveSystem'
 import { ShopSystem } from '../systems/ShopSystem'
 import { FishingStateMachine } from '../systems/FishingStateMachine'
 import { BaitSystem } from '../systems/BaitSystem'
@@ -46,6 +47,7 @@ export class WorldScene extends Phaser.Scene {
   private spawn!: FishPopulation
   private fishAI!: FishAISystem
   private predators!: PredatorSystem
+  private save!: GameSaveSystem
   private economy!: EconomySystem
   private shop!: ShopSystem
   private bait!: BaitSystem
@@ -80,9 +82,10 @@ export class WorldScene extends Phaser.Scene {
         : new FishSpawnSystem(this, this.biomes)
     this.fishAI = new FishAISystem()
     this.predators = new PredatorSystem(this, this.biomes)
-    this.economy = new EconomySystem()
-    this.shop = new ShopSystem(this.economy)
-    this.stats = new PlayerStats(this.horse, this.shop)
+    this.save = new GameSaveSystem()
+    this.economy = new EconomySystem(this.save)
+    this.shop = new ShopSystem(this.economy, this.save)
+    this.stats = new PlayerStats(this.horse, this.lure)
     this.bait = new BaitSystem()
     this.catchDecision = new CatchDecisionSystem(this.economy, this.bait)
     this.lure.setBaitColor(this.bait.color)
@@ -111,6 +114,8 @@ export class WorldScene extends Phaser.Scene {
       this.inputSystem.destroy()
       this.fishing.destroy()
       this.shop.destroy()
+      this.economy.destroy()
+      this.bait.destroy()
     })
   }
 

@@ -193,9 +193,9 @@ export class Fish {
   }
 
   /**
-   * Patrol walls only apply during normal idle swim inside the spawn box.
-   * Chasing bait/hooked fish may leave the box; returning home may pass back
-   * through without getting snapped to the edge.
+   * Patrol walls apply during normal idle swim. Chasing bait/hooked fish may
+   * leave the box; once aggro drops, returnHome + these walls keep fish inside
+   * the editor-authored swim range.
    */
   private enforcePatrolBounds(): void {
     if (this.chaseUnlocked) {
@@ -205,8 +205,19 @@ export class Fish {
     const { minX, maxX } = this.swimBounds
     const x = this.container.x
 
-    // Off-patrol excursions are recovered by returnHome, not hard wall snaps.
-    if (x < minX || x > maxX) {
+    if (x < minX) {
+      this.container.x = minX
+      if (this.vx < 0) {
+        this.vx = Math.abs(this.vx)
+      }
+      return
+    }
+
+    if (x > maxX) {
+      this.container.x = maxX
+      if (this.vx > 0) {
+        this.vx = -Math.abs(this.vx)
+      }
       return
     }
 

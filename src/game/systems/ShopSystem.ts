@@ -1,72 +1,66 @@
-import { ShopCategories, ShopUpgrades } from '../data/shopData'
+import { ShopCategories } from '../data/shopData'
+import {
+  BoatPlaceholders,
+  InvestmentPlaceholders,
+  LurePlaceholders,
+  RodPlaceholders,
+} from '../data/placeholderCatalogData'
 import { EventBus } from '../events/EventBus'
 import { GameEvents } from '../events/GameEvents'
-import type { ShopEffectId, ShopStateSnapshot, ShopUpgradeDefinition, ShopUpgradeState } from '../types/ShopTypes'
-import { EconomySystem } from './EconomySystem'
-import { UpgradeSystem } from './UpgradeSystem'
+import type { ShopCatalogSectionState, ShopStateSnapshot } from '../types/ShopTypes'
+import type { EconomySystem } from './EconomySystem'
+import type { ShopCatalogSavePort } from './ShopCatalogInventorySystem'
+import { ShopCatalogInventorySystem } from './ShopCatalogInventorySystem'
+import { createLureCatalogInventory, createRodCatalogInventory } from './shopCatalogInventories'
 
 /**
- * Handles shop purchase requests and emits read-only shop snapshots for UI.
+ * Emits read-only shop snapshots for the UI and routes catalog purchases.
  */
 export class ShopSystem {
-  private readonly upgrades = new UpgradeSystem(ShopUpgrades)
-  private purchaseInFlight = false
+  private readonly rods: ShopCatalogInventorySystem<(typeof import('../data/rodData').ShopRods)[number]>
+  private readonly lures: ShopCatalogInventorySystem<(typeof import('../data/lureData').ShopLures)[number]>
 
-  constructor(private readonly economy: EconomySystem) {
-    EventBus.on(GameEvents.SHOP_PURCHASE_REQUESTED, this.onPurchaseRequested)
+  constructor(
+    private readonly economy: EconomySystem,
+    persistence?: ShopCatalogSavePort,
+  ) {
+    this.rods = createRodCatalogInventory(economy, persistence)
+    this.lures = createLureCatalogInventory(economy, persistence)
+
     EventBus.on(GameEvents.SHOP_STATE_REQUESTED, this.onStateRequested)
     EventBus.on(GameEvents.MONEY_CHANGED, this.onMoneyChanged)
+    EventBus.on(GameEvents.SHOP_CATALOG_CHANGED, this.onCatalogChanged)
     this.emitState()
   }
 
   destroy(): void {
-    EventBus.off(GameEvents.SHOP_PURCHASE_REQUESTED, this.onPurchaseRequested)
     EventBus.off(GameEvents.SHOP_STATE_REQUESTED, this.onStateRequested)
     EventBus.off(GameEvents.MONEY_CHANGED, this.onMoneyChanged)
-  }
-
-  getContribution(effectId: ShopEffectId): number {
-    return this.upgrades.getContribution(effectId)
+    EventBus.off(GameEvents.SHOP_CATALOG_CHANGED, this.onCatalogChanged)
+    this.rods.destroy()
+    this.lures.destroy()
   }
 
   private emitState(): void {
     const snapshot: ShopStateSnapshot = {
       money: this.economy.money,
       categories: ShopCategories,
-      upgrades: ShopUpgrades.map((definition) => this.toUpgradeState(definition)),
+      catalogs: {
+        rods: this.buildCatalogSection(this.rods.getShopItemStates(), RodPlaceholders, 'rod'),
+        boats: this.buildCatalogSection([], BoatPlaceholders, 'boat'),
+        lures: this.buildCatalogSection(this.lures.getShopItemStates(), LurePlaceholders, 'lure'),
+        investments: this.buildCatalogSection([], InvestmentPlaceholders, 'investment'),
+      },
     }
     EventBus.emit(GameEvents.SHOP_STATE_CHANGED, snapshot)
   }
 
-  private toUpgradeState(definition: ShopUpgradeDefinition): ShopUpgradeState {
-    const level = this.upgrades.getLevel(definition.id)
-    const isMaxed = level >= definition.maxLevel
-    const nextCost = isMaxed ? 0 : this.upgrades.getNextCost(definition.id)
-    return {
-      id: definition.id,
-      categoryId: definition.categoryId,
-      title: definition.title,
-      description: definition.description,
-      level,
-      maxLevel: definition.maxLevel,
-      nextCost,
-      isMaxed,
-      affordable: !isMaxed && this.economy.canAfford(nextCost),
-      effectText: this.effectText(definition),
-    }
-  }
-
-  private effectText(definition: ShopUpgradeDefinition): string {
-    switch (definition.effectId) {
-      case 'castPower':
-        return `+${Math.round(definition.effectPerLevel * 100)}% cast power per level`
-      case 'reelSpeed':
-        return `+${Math.round(definition.effectPerLevel * 100)}% reel speed per level`
-      case 'maxDepth':
-        return `+${Math.round(definition.effectPerLevel)} max depth per level`
-      default:
-        return 'Upgrade effect'
-    }
+  private buildCatalogSection(
+    items: ShopCatalogSectionState['items'],
+    placeholders: ShopCatalogSectionState['placeholders'],
+    placeholderKind: ShopCatalogSectionState['placeholderKind'],
+  ): ShopCatalogSectionState {
+    return { items, placeholders, placeholderKind }
   }
 
   private readonly onStateRequested = (): void => {
@@ -74,44 +68,10 @@ export class ShopSystem {
   }
 
   private readonly onMoneyChanged = (): void => {
-    if (this.purchaseInFlight) {
-      return
-    }
     this.emitState()
   }
 
-  private readonly onPurchaseRequested = (payload: { upgradeId: string }): void => {
-    const definition = this.upgrades.getDefinition(payload.upgradeId)
-    if (!definition) {
-      EventBus.emit(GameEvents.SHOP_PURCHASE_FEEDBACK, { message: 'Unknown upgrade.', tone: 'error' })
-      return
-    }
-
-    if (this.upgrades.isMaxed(definition.id)) {
-      EventBus.emit(GameEvents.SHOP_PURCHASE_FEEDBACK, {
-        message: `${definition.title} is already maxed.`,
-        tone: 'neutral',
-      })
-      this.emitState()
-      return
-    }
-
-    const cost = this.upgrades.getNextCost(definition.id)
-    this.purchaseInFlight = true
-    if (!this.economy.trySpend(cost)) {
-      this.purchaseInFlight = false
-      EventBus.emit(GameEvents.SHOP_PURCHASE_FEEDBACK, { message: `Not enough money for ${definition.title}.`, tone: 'error' })
-      this.emitState()
-      return
-    }
-
-    this.upgrades.tryLevelUp(definition.id)
-    this.purchaseInFlight = false
-    EventBus.emit(GameEvents.SHOP_PURCHASE_FEEDBACK, {
-      message: `Bought ${definition.title} for $${cost}.`,
-      tone: 'success',
-    })
+  private readonly onCatalogChanged = (): void => {
     this.emitState()
   }
 }
-

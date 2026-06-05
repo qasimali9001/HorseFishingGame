@@ -1,16 +1,30 @@
 import { EventBus } from '../events/EventBus'
 import { GameEvents } from '../events/GameEvents'
 
+export interface EconomySavePort {
+  readonly money: number
+  setMoney(money: number): void
+}
+
 /**
  * Owns the player's money. Selling happens here -- not in fish, lure, or the
  * scene -- and changes are announced via the EventBus so the UI stays
  * decoupled.
  */
 export class EconomySystem {
-  private moneyValue = 0
+  private moneyValue: number
+
+  constructor(private readonly save?: EconomySavePort) {
+    this.moneyValue = save?.money ?? 0
+    EventBus.on(GameEvents.MONEY_STATE_REQUESTED, this.onMoneyStateRequested)
+  }
 
   get money(): number {
     return this.moneyValue
+  }
+
+  destroy(): void {
+    EventBus.off(GameEvents.MONEY_STATE_REQUESTED, this.onMoneyStateRequested)
   }
 
   canAfford(cost: number): boolean {
@@ -20,7 +34,7 @@ export class EconomySystem {
   /** Adds a landed catch's value and announces the new balance. */
   sell(value: number): number {
     this.moneyValue += value
-    EventBus.emit(GameEvents.MONEY_CHANGED, { money: this.moneyValue })
+    this.commitMoneyChange()
     return this.moneyValue
   }
 
@@ -30,7 +44,20 @@ export class EconomySystem {
       return false
     }
     this.moneyValue -= cost
-    EventBus.emit(GameEvents.MONEY_CHANGED, { money: this.moneyValue })
+    this.commitMoneyChange()
     return true
+  }
+
+  private commitMoneyChange(): void {
+    this.save?.setMoney(this.moneyValue)
+    this.emitMoney()
+  }
+
+  private emitMoney(): void {
+    EventBus.emit(GameEvents.MONEY_CHANGED, { money: this.moneyValue })
+  }
+
+  private readonly onMoneyStateRequested = (): void => {
+    this.emitMoney()
   }
 }

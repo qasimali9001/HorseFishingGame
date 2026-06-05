@@ -447,7 +447,7 @@ export class LevelEditorScene extends Phaser.Scene {
       'LEVEL EDITOR  (?editor)',
       '',
       `add-on-click: ${this.addOnClick ? 'ON' : 'OFF'}  (F toggles)`,
-      `place species: ${palette.displayName} (${palette.id})  depth ${palette.minDepth}-${palette.maxDepth}`,
+      `place species: ${palette.displayName} (${palette.id})`,
       `  speed ${palette.speed}  respawn ${(palette.respawnMs / 1000).toFixed(0)}s  aggro ${palette.aggressionRadius}`,
       `points: ${this.points.length}`,
       `horse spawn: x:${WorldConfig.surfaceAnchorX}  y:${WorldConfig.waterlineY} (red marker)`,

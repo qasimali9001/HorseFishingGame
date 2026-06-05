@@ -9,6 +9,7 @@ import pinkRoundUrl from '../../assets/fish/fish_06_pink_round_medium.png'
 import purpleChunkyUrl from '../../assets/fish/fish_07_purple_chunky_large.png'
 import blueTunaUrl from '../../assets/fish/fish_08_blue_tuna_large.png'
 import greyCatfishUrl from '../../assets/fish/fish_09_grey_catfish_large.png'
+import horseFishUrl from '../../assets/fish/fish_10_horse_fish_verylarge.png'
 
 /** One bundled fish sprite: texture key, source URL, and size tier. */
 export interface FishArtEntry {
@@ -67,6 +68,11 @@ export const FISH_ART_CATALOG: readonly FishArtEntry[] = [
     sourceUrl: greyCatfishUrl,
     sizeTier: 'large',
   },
+  {
+    textureKey: 'fish-horse-fish',
+    sourceUrl: horseFishUrl,
+    sizeTier: 'veryLarge',
+  },
 ] as const
 
 /** Stable texture keys for each species (mirrors fishData artId values). */
@@ -80,6 +86,7 @@ export const FishTextures = {
   purpleChunky: 'fish-purple-chunky',
   blueTuna: 'fish-blue-tuna',
   greyCatfish: 'fish-grey-catfish',
+  horseFish: 'fish-horse-fish',
 } as const
 
 export function findFishArtEntry(textureKey: string): FishArtEntry | undefined {

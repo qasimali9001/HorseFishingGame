@@ -37,8 +37,6 @@ export function formatFishDataExport(fish: readonly FishDefinition[]): string {
         `    requiredBaitTier: '${f.requiredBaitTier}',`,
         `    color: 0x${f.color.toString(16).padStart(6, '0')},`,
         `    biomeIds: [${biomeIds}],`,
-        `    minDepth: ${f.minDepth},`,
-        `    maxDepth: ${f.maxDepth},`,
         `    rarity: '${f.rarity}',`,
         `    value: ${f.value},`,
         `    speed: ${f.speed},`,

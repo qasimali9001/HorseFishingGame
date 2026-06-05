@@ -2,7 +2,10 @@ import Phaser from 'phaser'
 import { FishingConfig } from '../config/FishingConfig'
 import { LureMotionConfig } from '../config/LureMotionConfig'
 import { WorldConfig, worldRightX } from '../config/WorldConfig'
-import { HorseTextures } from '../assets/HorseAssets'
+import { DefaultLureId, getShopLureById } from '../data/lureData'
+import { EventBus } from '../events/EventBus'
+import { GameEvents } from '../events/GameEvents'
+import type { LureDefinition, LureStats } from '../types/LureTypes'
 
 /** How the lure is currently moving. */
 export type LureMode = 'docked' | 'airborne' | 'sinking' | 'reeling' | 'hanging'
@@ -38,10 +41,11 @@ export class Lure {
   private hangAnchorX = 0
   private hangTime = 0
   private showBaitMarker = true
+  private definition: LureDefinition = getShopLureById(DefaultLureId)!
 
   constructor(scene: Phaser.Scene) {
     this.sprite = scene.add
-      .image(0, 0, HorseTextures.lure)
+      .image(0, 0, this.definition.textureKey)
       .setOrigin(FishingConfig.lure.originX, FishingConfig.lure.originY)
       .setScale(FishingConfig.lure.scale)
       .setDepth(9)
@@ -51,6 +55,17 @@ export class Lure {
       .setDepth(10)
       .setAlpha(FishingConfig.baitVisual.alpha)
       .setVisible(false)
+    EventBus.on(GameEvents.LURE_EQUIPPED, this.onLureEquipped)
+  }
+
+  /** Lure-derived stats, read by the fishing system. */
+  get lureStats(): LureStats {
+    return this.definition
+  }
+
+  equipLure(definition: LureDefinition): void {
+    this.definition = definition
+    this.sprite.setTexture(definition.textureKey)
   }
 
   get x(): number {
@@ -226,5 +241,9 @@ export class Lure {
     }
     this.baitVisual.x = this.sprite.x + FishingConfig.baitVisual.offsetX
     this.baitVisual.y = this.sprite.y + FishingConfig.baitVisual.offsetY
+  }
+
+  private readonly onLureEquipped = (payload: { lure: LureDefinition }): void => {
+    this.equipLure(payload.lure)
   }
 }

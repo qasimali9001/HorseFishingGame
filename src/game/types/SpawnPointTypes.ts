@@ -16,7 +16,7 @@ export interface SpawnPointDefinition {
   y: number
   /** Which species this point spawns (must exist in fishData). */
   fishId: string
-  /** Runtime currently treats a point as one persistent fish; kept for editor/future slots. */
+  /** Max concurrent fish for this point (editor-tunable; not yet enforced at runtime). */
   maxAlive: number
   /** Horizontal patrol width in world units, centered on x. */
   swimRange: number

@@ -75,7 +75,7 @@ export const BIOME_DATA: readonly BiomeDefinition[] = [
     backgroundColorBottom: 0x050b0e,
     fogOpacity: 0.58,
     lightMultiplier: 0.16,
-    fishIds: [],
+    fishIds: ['horse-fish'],
     propIds: ['teeth', 'eye'],
   },
 ] as const

@@ -10,14 +10,15 @@ export interface BaitUpgradeResult {
 }
 
 /**
- * Owns current bait tier and progression. Catch systems ask this module whether
- * a fish is hookable and call `upgradeFromFishSize` when a landed fish is
- * chucked back into the water.
+ * Owns current bait tier for the active session. Catch systems ask whether a
+ * fish is hookable; upgraded bait is spent on a successful land, and
+ * `upgradeFromFishSize` applies when a landed fish is chucked back.
  */
 export class BaitSystem {
   private tierValue: BaitTier = BaitConfig.startingTier
 
   constructor() {
+    EventBus.on(GameEvents.BAIT_STATE_REQUESTED, this.onBaitStateRequested)
     this.emitChange()
   }
 
@@ -31,6 +32,10 @@ export class BaitSystem {
 
   get label(): string {
     return BaitConfig.visuals[this.tierValue].label
+  }
+
+  destroy(): void {
+    EventBus.off(GameEvents.BAIT_STATE_REQUESTED, this.onBaitStateRequested)
   }
 
   canHook(requiredTier: BaitTier): boolean {
@@ -57,6 +62,16 @@ export class BaitSystem {
     return result
   }
 
+  /** Upgraded bait is spent when a fish is successfully landed. */
+  consumeOnCatch(): boolean {
+    if (this.tierValue === BaitConfig.startingTier) {
+      return false
+    }
+    this.tierValue = BaitConfig.startingTier
+    this.emitChange()
+    return true
+  }
+
   private rank(tier: BaitTier): number {
     return BaitConfig.tiers.indexOf(tier)
   }
@@ -67,5 +82,9 @@ export class BaitSystem {
       color: this.color,
       label: this.label,
     })
+  }
+
+  private readonly onBaitStateRequested = (): void => {
+    this.emitChange()
   }
 }

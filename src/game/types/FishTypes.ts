@@ -5,7 +5,7 @@ export type FishRarity = 'common' | 'uncommon' | 'rare' | 'legendary'
 
 /**
  * Data-driven fish species. New fish = new entries in fishData, no new classes.
- * Depths are world units below the waterline.
+ * Spawn depth is authored per spawn point (`spawnPointData.y`), not per species.
  */
 export interface FishDefinition {
   id: string
@@ -18,10 +18,8 @@ export interface FishDefinition {
   requiredBaitTier: BaitTier
   /** Fallback tint used if a texture key is missing. */
   color: number
-  /** Biomes this species can appear in (see biomeData). */
+  /** Biomes this species can appear in (see biomeData; procedural spawner only). */
   biomeIds: string[]
-  minDepth: number
-  maxDepth: number
   rarity: FishRarity
   /** Sell value when landed. */
   value: number

@@ -1,9 +1,10 @@
 import Phaser from 'phaser'
 import { ShopUIConfig } from '../config/ShopUIConfig'
-import type { ShopCategoryDefinition, ShopStateSnapshot, ShopUpgradeState } from '../types/ShopTypes'
+import { ShopCatalogPanel } from './ShopCatalogPanel'
+import type { ShopCategoryDefinition, ShopCategoryId, ShopStateSnapshot } from '../types/ShopTypes'
 
 /**
- * Simple window for shop sections. It only presents categories for now.
+ * Shop window with category tabs and catalog list rows per section.
  */
 export class ShopWindow {
   private readonly scene: Phaser.Scene
@@ -15,18 +16,34 @@ export class ShopWindow {
   private readonly title: Phaser.GameObjects.Text
   private readonly subtitle: Phaser.GameObjects.Text
   private readonly moneyText: Phaser.GameObjects.Text
+  private readonly catalogPanel: ShopCatalogPanel
 
   private readonly dynamicObjects: Phaser.GameObjects.GameObject[] = []
   private state: ShopStateSnapshot | null = null
-  private selectedCategoryId: string | null = null
-  private readonly onPurchaseRequested: (upgradeId: string) => void
+  private selectedCategoryId: ShopCategoryId | null = null
+  private activeCatalogId: ShopCategoryId | null = null
 
   constructor(
     scene: Phaser.Scene,
-    handlers: { onCloseRequested: () => void; onPurchaseRequested: (upgradeId: string) => void },
+    handlers: {
+      onCloseRequested: () => void
+      onCatalogPurchaseRequested: (catalogId: ShopCategoryId, itemId: string) => void
+      onCatalogEquipRequested: (catalogId: ShopCategoryId, itemId: string) => void
+    },
   ) {
     this.scene = scene
-    this.onPurchaseRequested = handlers.onPurchaseRequested
+    this.catalogPanel = new ShopCatalogPanel(scene, {
+      onPurchaseRequested: (itemId) => {
+        if (this.activeCatalogId) {
+          handlers.onCatalogPurchaseRequested(this.activeCatalogId, itemId)
+        }
+      },
+      onEquipRequested: (itemId) => {
+        if (this.activeCatalogId) {
+          handlers.onCatalogEquipRequested(this.activeCatalogId, itemId)
+        }
+      },
+    })
     this.root = this.scene.add.container(0, 0).setScrollFactor(0).setVisible(false)
 
     this.backdrop = this.scene.add
@@ -50,7 +67,7 @@ export class ShopWindow {
       .setOrigin(0.5, 0)
 
     this.subtitle = this.scene.add
-      .text(0, 0, 'Buy upgrades for Rods, Lures, and Gadgets.', {
+      .text(0, 0, 'Buy rods, boats, lures, and investments.', {
         fontFamily: 'monospace',
         fontSize: '15px',
         color: ShopUIConfig.window.subtitleColor,
@@ -133,6 +150,7 @@ export class ShopWindow {
     this.backdrop.off(Phaser.Input.Events.POINTER_DOWN)
     this.closeButtonBg.off(Phaser.Input.Events.POINTER_DOWN)
     this.clearDynamicContent()
+    this.catalogPanel.destroy()
     this.root.destroy(true)
   }
 
@@ -165,32 +183,25 @@ export class ShopWindow {
       .setOrigin(0, 0)
     this.trackDynamic(categoryTitle, categoryDesc)
 
-    const upgrades = this.state.upgrades.filter((entry) => entry.categoryId === this.selectedCategoryId)
-    if (upgrades.length === 0) {
-      const placeholder = this.scene.add
-        .text(0, 0, selectedCategory.placeholderMessage ?? 'No upgrades available yet.', {
-          fontFamily: 'monospace',
-          fontSize: '15px',
-          color: ShopUIConfig.window.placeholderTextColor,
-          wordWrap: { width: 470 },
-        })
-        .setOrigin(0, 0)
-      this.trackDynamic(placeholder)
-    } else {
-      for (const upgrade of upgrades) {
-        this.buildUpgradeRow(upgrade)
-      }
-    }
+    const catalog = this.state.catalogs[this.selectedCategoryId]
+    this.activeCatalogId = this.selectedCategoryId
+    const catalogObjects = this.catalogPanel.build(
+      catalog.items,
+      catalog.placeholders,
+      catalog.placeholderKind,
+    )
+    this.trackDynamic(...catalogObjects)
 
     this.layout()
   }
 
   private buildCategoryButtons(categories: readonly ShopCategoryDefinition[]): void {
+    const { width: tabWidth, height: tabHeight } = ShopUIConfig.tabs
     for (const category of categories) {
       const selected = category.id === this.selectedCategoryId
       const fill = selected ? ShopUIConfig.window.cardActiveColor : ShopUIConfig.window.cardColor
       const button = this.scene.add
-        .rectangle(0, 0, 120, 32, fill, 0.95)
+        .rectangle(0, 0, tabWidth, tabHeight, fill, 0.95)
         .setStrokeStyle(1, ShopUIConfig.window.cardBorderColor)
         .setInteractive({ useHandCursor: true })
       button.on(Phaser.Input.Events.POINTER_DOWN, () => {
@@ -210,63 +221,18 @@ export class ShopWindow {
     }
   }
 
-  private buildUpgradeRow(upgrade: ShopUpgradeState): void {
-    const row = this.scene.add
-      .rectangle(0, 0, 500, 58, ShopUIConfig.window.cardColor, 0.85)
-      .setStrokeStyle(1, ShopUIConfig.window.cardBorderColor)
-
-    const name = this.scene.add
-      .text(0, 0, `${upgrade.title}  Lv ${upgrade.level}/${upgrade.maxLevel}`, {
-        fontFamily: 'monospace',
-        fontSize: '14px',
-        color: ShopUIConfig.window.cardTextColor,
-      })
-      .setOrigin(0, 0.5)
-
-    const desc = this.scene.add
-      .text(0, 0, `${upgrade.description}  (${upgrade.effectText})`, {
-        fontFamily: 'monospace',
-        fontSize: '12px',
-        color: ShopUIConfig.window.cardSubtextColor,
-      })
-      .setOrigin(0, 0.5)
-
-    const canBuy = !upgrade.isMaxed && upgrade.affordable
-    const purchaseFill = canBuy
-      ? ShopUIConfig.window.purchaseButtonColor
-      : ShopUIConfig.window.purchaseButtonDisabledColor
-    const purchaseBorder = canBuy
-      ? ShopUIConfig.window.purchaseButtonBorderColor
-      : ShopUIConfig.window.purchaseButtonDisabledBorderColor
-
-    const buyButton = this.scene.add
-      .rectangle(0, 0, 120, 36, purchaseFill, 0.95)
-      .setStrokeStyle(1, purchaseBorder)
-      .setInteractive({ useHandCursor: !upgrade.isMaxed })
-    buyButton.on(Phaser.Input.Events.POINTER_DOWN, () => {
-      if (!upgrade.isMaxed) {
-        this.onPurchaseRequested(upgrade.id)
-      }
-    })
-
-    const buyLabel = this.scene.add
-      .text(0, 0, upgrade.isMaxed ? 'MAX' : `$${upgrade.nextCost}`, {
-        fontFamily: 'monospace',
-        fontSize: '14px',
-        color: '#ebfff2',
-      })
-      .setOrigin(0.5)
-
-    this.trackDynamic(row, name, desc, buyButton, buyLabel)
-  }
-
   private trackDynamic(...objects: Phaser.GameObjects.GameObject[]): void {
     this.dynamicObjects.push(...objects)
     this.root.add(objects)
   }
 
   private clearDynamicContent(): void {
+    this.catalogPanel.reset()
+    this.activeCatalogId = null
     for (const object of this.dynamicObjects) {
+      if ('off' in object && typeof object.off === 'function') {
+        object.off(Phaser.Input.Events.POINTER_DOWN)
+      }
       object.destroy()
     }
     this.dynamicObjects.length = 0
@@ -279,46 +245,27 @@ export class ShopWindow {
 
     let index = 0
     const categories = this.state.categories
-    const tabStartX = centerX - ShopUIConfig.window.width * 0.5 + 74
-    const tabY = panelTop + 122
-    const tabStep = 124
+    const { width: tabWidth, gap: tabGap, yOffset: tabYOffset } = ShopUIConfig.tabs
+    const tabsWidth = categories.length * tabWidth + Math.max(0, categories.length - 1) * tabGap
+    const tabStartX = centerX - tabsWidth * 0.5 + tabWidth * 0.5
+    const tabY = panelTop + tabYOffset
     for (let i = 0; i < categories.length; i += 1) {
       const button = this.dynamicObjects[index] as Phaser.GameObjects.Rectangle
       const label = this.dynamicObjects[index + 1] as Phaser.GameObjects.Text
-      button.setPosition(tabStartX + i * tabStep, tabY)
+      button.setPosition(tabStartX + i * (tabWidth + tabGap), tabY)
       label.setPosition(button.x, button.y)
       index += 2
     }
 
+    const contentLeft = centerX - ShopUIConfig.window.width * 0.5 + ShopUIConfig.window.contentInsetX
     const title = this.dynamicObjects[index] as Phaser.GameObjects.Text
     const desc = this.dynamicObjects[index + 1] as Phaser.GameObjects.Text
-    title.setPosition(centerX - 246, panelTop + 152)
-    desc.setPosition(centerX - 246, panelTop + 178)
+    title.setPosition(contentLeft, panelTop + 152)
+    desc.setPosition(contentLeft, panelTop + 176)
     index += 2
 
-    const upgrades = this.state.upgrades.filter((entry) => entry.categoryId === this.selectedCategoryId)
-    if (upgrades.length === 0) {
-      const placeholder = this.dynamicObjects[index] as Phaser.GameObjects.Text
-      placeholder.setPosition(centerX - 246, panelTop + 212)
-      return
-    }
-
-    const rowStartY = panelTop + 220
-    const rowStep = 66
-    for (let i = 0; i < upgrades.length; i += 1) {
-      const row = this.dynamicObjects[index] as Phaser.GameObjects.Rectangle
-      const name = this.dynamicObjects[index + 1] as Phaser.GameObjects.Text
-      const rowDesc = this.dynamicObjects[index + 2] as Phaser.GameObjects.Text
-      const button = this.dynamicObjects[index + 3] as Phaser.GameObjects.Rectangle
-      const buttonLabel = this.dynamicObjects[index + 4] as Phaser.GameObjects.Text
-      const y = rowStartY + i * rowStep
-
-      row.setPosition(centerX, y)
-      name.setPosition(centerX - 236, y - 12)
-      rowDesc.setPosition(centerX - 236, y + 10)
-      button.setPosition(centerX + 184, y)
-      buttonLabel.setPosition(button.x, button.y)
-      index += 5
+    if (this.activeCatalogId) {
+      this.catalogPanel.layout(centerX, panelTop + ShopUIConfig.catalogList.contentTopOffset)
     }
   }
 }

@@ -1,6 +1,8 @@
 import Phaser from 'phaser'
 import { SceneKeys } from './SceneKeys'
 import { loadHorseAssets } from '../assets/HorseAssets'
+import { loadRodAssets } from '../assets/RodAssets'
+import { loadLureAssets } from '../assets/LureAssets'
 import { loadFishAssets } from '../assets/FishAssets'
 import { loadTitleAssets } from '../assets/TitleAssets'
 
@@ -15,6 +17,8 @@ export class PreloadScene extends Phaser.Scene {
 
   preload(): void {
     loadHorseAssets(this)
+    loadRodAssets(this)
+    loadLureAssets(this)
     loadTitleAssets(this)
     loadFishAssets(this)
   }
