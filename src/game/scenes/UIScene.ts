@@ -5,6 +5,9 @@ import { EventBus } from '../events/EventBus'
 import { GameEvents } from '../events/GameEvents'
 import { ShopToggleButton } from '../ui/ShopToggleButton'
 import { ShopWindow } from '../ui/ShopWindow'
+import { SettingsToggleButton } from '../ui/SettingsToggleButton'
+import { SettingsWindow } from '../ui/SettingsWindow'
+import { audioSettings } from '../systems/AudioSettingsSystem'
 import type { ShopStateSnapshot } from '../types/ShopTypes'
 
 interface DebugTickPayload {
@@ -74,6 +77,8 @@ export class UIScene extends Phaser.Scene {
   private shopButton?: ShopToggleButton
   private shopWindow?: ShopWindow
   private shopToggleKey?: Phaser.Input.Keyboard.Key
+  private settingsButton?: SettingsToggleButton
+  private settingsWindow?: SettingsWindow
 
   constructor() {
     super(SceneKeys.UI)
@@ -90,6 +95,8 @@ export class UIScene extends Phaser.Scene {
     }
 
     this.createShopUI()
+    this.createSettingsUI()
+    audioSettings.applyToMusic()
     this.shutdownCleanup()
   }
 
@@ -336,12 +343,47 @@ export class UIScene extends Phaser.Scene {
 
   private toggleShop(): void {
     const nextOpen = !(this.shopWindow?.isOpen ?? false)
+    if (nextOpen) {
+      this.setSettingsOpen(false)
+    }
     this.setShopOpen(nextOpen)
   }
 
   private setShopOpen(nextOpen: boolean): void {
     this.shopWindow?.setOpen(nextOpen)
     this.shopButton?.setActive(nextOpen)
+  }
+
+  private createSettingsUI(): void {
+    this.settingsWindow = new SettingsWindow(this, {
+      onCloseRequested: () => this.setSettingsOpen(false),
+    })
+    this.settingsButton = new SettingsToggleButton(this, () => this.toggleSettings())
+
+    this.scale.on(Phaser.Scale.Events.RESIZE, this.handleSettingsResize, this)
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.scale.off(Phaser.Scale.Events.RESIZE, this.handleSettingsResize, this)
+      this.settingsButton?.destroy()
+      this.settingsWindow?.destroy()
+    })
+  }
+
+  private handleSettingsResize(): void {
+    this.settingsButton?.layout()
+    this.settingsWindow?.layout()
+  }
+
+  private toggleSettings(): void {
+    const nextOpen = !(this.settingsWindow?.isOpen ?? false)
+    if (nextOpen) {
+      this.setShopOpen(false)
+    }
+    this.setSettingsOpen(nextOpen)
+  }
+
+  private setSettingsOpen(nextOpen: boolean): void {
+    this.settingsWindow?.setOpen(nextOpen)
+    this.settingsButton?.setActive(nextOpen)
   }
 
   private shutdownCleanup(): void {

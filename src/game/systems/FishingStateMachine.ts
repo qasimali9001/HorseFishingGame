@@ -47,11 +47,14 @@ export class FishingStateMachine {
   private state: FishingState = FishingState.IdleAtSurface
   private enteredWater = false
   private hookedFish: Fish | null = null
-  /** False after a hooked fish is eaten; restored only after docking/recasting. */
+  /** False after a hooked fish is eaten; restored when the lure docks at the surface. */
   private hookHasBait = true
+  /** Reset upgraded bait tier when the player reels in after a theft. */
+  private resetBaitOnLanding = false
   /** True between a fresh press (in idle) and its release: the cast is charging. */
   private charging = false
   private sellRequested = false
+  private wasReeling = false
   /** Owns per-cast line payout and taut-line depth constraints. */
   private readonly linePayout = new LinePayoutController()
 
@@ -70,6 +73,7 @@ export class FishingStateMachine {
   destroy(): void {
     EventBus.off(GameEvents.BAIT_CHANGED, this.onBaitChanged)
     EventBus.off(GameEvents.CATCH_SELL_REQUESTED, this.onSellRequested)
+    EventBus.emit(GameEvents.REELING_CHANGED, { active: false })
   }
 
   update(dtSec: number): void {
@@ -137,6 +141,18 @@ export class FishingStateMachine {
       this.updateUnderwaterState()
       this.checkLanding()
     }
+
+    this.updateReelingSignal()
+  }
+
+  private updateReelingSignal(): void {
+    const isReeling = this.deps.lure.isActive && this.deps.input.isReeling
+    if (isReeling === this.wasReeling) {
+      return
+    }
+
+    this.wasReeling = isReeling
+    EventBus.emit(GameEvents.REELING_CHANGED, { active: isReeling })
   }
 
   private consumeSellRequest(): boolean {
@@ -155,6 +171,7 @@ export class FishingStateMachine {
     this.deps.spawn.remove(fish)
     this.hookedFish = null
     this.hookHasBait = false
+    this.resetBaitOnLanding = true
     this.deps.lure.setBaitVisible(false)
     this.setState(FishingState.CatchLost)
   }
@@ -229,6 +246,7 @@ export class FishingStateMachine {
     if (this.deps.lure.y >= WorldConfig.waterlineY) {
       this.enteredWater = true
       this.deps.lure.enterWater()
+      EventBus.emit(GameEvents.LURE_WATER_ENTERED)
       this.deps.camera.setMode(CameraMode.LureFollow)
       this.setState(FishingState.Sinking)
     }
@@ -295,6 +313,10 @@ export class FishingStateMachine {
 
     this.deps.lure.dock()
     this.hookHasBait = true
+    if (this.resetBaitOnLanding) {
+      this.deps.bait.resetOnTheft()
+      this.resetBaitOnLanding = false
+    }
     this.enteredWater = false
     this.linePayout.reset()
     this.deps.biomes.reset()

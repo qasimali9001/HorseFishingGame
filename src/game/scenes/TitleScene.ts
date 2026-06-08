@@ -8,6 +8,9 @@ import { PlayerHorse } from '../entities/PlayerHorse'
 import { BackgroundLayer } from '../world/BackgroundLayer'
 import { SurfaceLayer } from '../world/SurfaceLayer'
 import { UnderwaterLayer } from '../world/UnderwaterLayer'
+import { musicController } from '../systems/MusicController'
+import { audioSettings } from '../systems/AudioSettingsSystem'
+import { sfxController } from '../systems/SfxController'
 
 /** First player-facing scene: title sign in the sky, then a pan into gameplay. */
 export class TitleScene extends Phaser.Scene {
@@ -21,6 +24,9 @@ export class TitleScene extends Phaser.Scene {
   }
 
   create(): void {
+    musicController.bind(this)
+    sfxController.bind(this)
+    audioSettings.applyToMusic()
     this.drawExtendedSky()
     new BackgroundLayer(this)
     new UnderwaterLayer(this)
@@ -83,6 +89,8 @@ export class TitleScene extends Phaser.Scene {
       return
     }
     this.isStarting = true
+    musicController.startBackgroundMusic()
+    sfxController.playOneShot('titleWhoosh')
     this.titleView?.hidePrompt()
 
     const { camera } = TitleScreenConfig

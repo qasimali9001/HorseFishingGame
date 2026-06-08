@@ -2,6 +2,10 @@
 export const GameEvents = {
   /** Fishing state machine changed state. payload: { state } */
   STATE_CHANGED: 'state-changed',
+  /** Player started/stopped reeling an active lure. payload: { active } */
+  REELING_CHANGED: 'reeling-changed',
+  /** The cast lure first crossed into the water. */
+  LURE_WATER_ENTERED: 'lure-water-entered',
   /** A fish made contact with the hook. payload: { fishId } */
   FISH_HOOKED: 'fish-hooked',
   /** A hooked fish reached the surface and was landed. payload: { fishId, value } */
@@ -56,6 +60,8 @@ export const GameEvents = {
   CAMERA_MODE_CHANGED: 'camera-mode-changed',
   /** Per-frame debug snapshot for the overlay. payload: { depth, cameraMode } */
   DEBUG_TICK: 'debug-tick',
+  /** Sound-effects master volume changed. payload: { volume } */
+  SFX_VOLUME_CHANGED: 'sfx-volume-changed',
 } as const
 
 export type GameEventName = (typeof GameEvents)[keyof typeof GameEvents]

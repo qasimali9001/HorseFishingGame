@@ -64,6 +64,15 @@ export class BaitSystem {
 
   /** Upgraded bait is spent when a fish is successfully landed. */
   consumeOnCatch(): boolean {
+    return this.resetToStartingTier()
+  }
+
+  /** Upgraded bait is lost when a hooked fish is stolen before landing. */
+  resetOnTheft(): boolean {
+    return this.resetToStartingTier()
+  }
+
+  private resetToStartingTier(): boolean {
     if (this.tierValue === BaitConfig.startingTier) {
       return false
     }

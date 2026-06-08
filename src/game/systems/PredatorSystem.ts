@@ -17,37 +17,49 @@ export interface PredatorContext {
 
 /** Lets larger regular fish steal smaller fish from the hook. */
 export class PredatorSystem {
+  private biteHoldSec = 0
+
   constructor(_scene: Phaser.Scene, _biomes: BiomeSystem) {}
 
   /** Steps predation; returns true if a larger fish ate the hooked fish this frame. */
-  update(_dtSec: number, ctx: PredatorContext): boolean {
+  update(dtSec: number, ctx: PredatorContext): boolean {
     if (!ctx.canSpawn || !ctx.hookedFish) {
+      this.biteHoldSec = 0
       return false
     }
 
+    const prey = ctx.hookedFish
+    let predatorInRange = false
+
     for (const candidate of ctx.fish) {
-      if (candidate === ctx.hookedFish || candidate.isHooked) {
+      if (candidate === prey || candidate.isHooked) {
         continue
       }
-      if (!canEatFishSize(candidate.def.sizeTier, ctx.hookedFish.def.sizeTier)) {
+      if (!canEatFishSize(candidate.def.sizeTier, prey.def.sizeTier)) {
         continue
       }
 
-      const reach =
-        candidate.radius + ctx.hookedFish.radius + FishConfig.hookedPredation.bitePadding
+      const reach = candidate.radius + prey.radius + FishConfig.hookedPredation.bitePadding
       if (
-        Phaser.Math.Distance.Squared(
-          candidate.x,
-          candidate.y,
-          ctx.hookedFish.x,
-          ctx.hookedFish.y,
-        ) <=
+        Phaser.Math.Distance.Squared(candidate.x, candidate.y, prey.x, prey.y) <=
         reach * reach
       ) {
-        return true
+        predatorInRange = true
+        break
       }
     }
 
-    return false
+    if (!predatorInRange) {
+      this.biteHoldSec = 0
+      return false
+    }
+
+    this.biteHoldSec += dtSec
+    if (this.biteHoldSec < FishConfig.hookedPredation.biteHoldSec) {
+      return false
+    }
+
+    this.biteHoldSec = 0
+    return true
   }
 }

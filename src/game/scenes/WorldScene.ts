@@ -27,6 +27,7 @@ import { ShopSystem } from '../systems/ShopSystem'
 import { FishingStateMachine } from '../systems/FishingStateMachine'
 import { BaitSystem } from '../systems/BaitSystem'
 import { CatchDecisionSystem } from '../systems/CatchDecisionSystem'
+import { sfxController } from '../systems/SfxController'
 import { EventBus } from '../events/EventBus'
 import { GameEvents } from '../events/GameEvents'
 
@@ -105,11 +106,14 @@ export class WorldScene extends Phaser.Scene {
       bait: this.bait,
       catchDecision: this.catchDecision,
     })
+    sfxController.bind(this)
+    sfxController.connectGameplayEvents()
 
     // Re-frame once layout/scale is settled so idle start shows horse + surface.
     this.time.delayedCall(0, () => this.cameraController.refreshSurfaceFrame())
     this.scale.on(Phaser.Scale.Events.RESIZE, this.handleViewportResize, this)
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      sfxController.disconnectGameplayEvents()
       this.scale.off(Phaser.Scale.Events.RESIZE, this.handleViewportResize, this)
       this.inputSystem.destroy()
       this.fishing.destroy()

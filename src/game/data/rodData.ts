@@ -20,14 +20,14 @@ export const ShopRods: readonly ShopRodDefinition[] = [
   {
     id: 'rod-wooden',
     displayName: 'Wooden Rod',
-    description: 'Wrapped driftwood grip. Casts farther and reels smoother.',
+    description: 'Wrapped driftwood grip. Launches hard and reaches much deeper water.',
     textureKey: RodTextures.wooden,
     visualId: 'rod-wooden',
     lengthPx: 250,
     cost: 120,
-    castPowerMultiplier: 1.12,
-    reelSpeedMultiplier: 1.08,
-    maxDepthBonus: 15,
+    castPowerMultiplier: 1.5,
+    reelSpeedMultiplier: 1.15,
+    maxDepthBonus: 100,
     lineStrengthBonus: 0,
   },
 ] as const

@@ -119,5 +119,7 @@ export const FishConfig = {
   hookedPredation: {
     /** Extra world-unit reach added to predator radius + prey radius. */
     bitePadding: 10,
+    /** Time a predator must stay in bite range before the hooked fish is stolen. */
+    biteHoldSec: 0.75,
   },
 } as const
