@@ -6,6 +6,7 @@ import { loadLureAssets } from '../assets/LureAssets'
 import { loadFishAssets } from '../assets/FishAssets'
 import { loadTitleAssets } from '../assets/TitleAssets'
 import { loadAudioAssets } from '../assets/AudioAssets'
+import { loadShopIconAssets } from '../assets/ShopIconAssets'
 
 /**
  * Asset loading lives here. Loads the horse rig textures, then launches the
@@ -22,6 +23,7 @@ export class PreloadScene extends Phaser.Scene {
     loadLureAssets(this)
     loadTitleAssets(this)
     loadFishAssets(this)
+    loadShopIconAssets(this)
     loadAudioAssets(this)
   }
 

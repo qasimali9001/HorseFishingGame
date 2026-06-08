@@ -23,6 +23,8 @@ export interface RodDefinition extends RodStats {
 export interface ShopRodDefinition extends RodDefinition {
   description: string
   cost: number
+  /** Optional square shop-row icon texture key. */
+  shopIconKey?: string
   /** When true the player starts with this rod already owned. */
   starterOwned?: boolean
 }

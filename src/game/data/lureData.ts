@@ -1,4 +1,5 @@
 import { LureTextures } from '../assets/LureAssets'
+import { ShopIconTextures } from '../assets/ShopIconAssets'
 import type { ShopLureDefinition } from '../types/LureTypes'
 
 /** Catalog of lures available in the shop and on the hook rig. */
@@ -8,6 +9,7 @@ export const ShopLures: readonly ShopLureDefinition[] = [
     displayName: 'Basic Lure',
     description: 'Simple hook and bobber. Gets the job done.',
     textureKey: LureTextures.basic,
+    shopIconKey: ShopIconTextures.lureBasic,
     visualId: 'lure-basic',
     cost: 0,
     starterOwned: true,
@@ -19,6 +21,7 @@ export const ShopLures: readonly ShopLureDefinition[] = [
     displayName: '10kg Weight',
     description: 'Heavy sinker that pulls your line down faster.',
     textureKey: LureTextures.weight10kg,
+    shopIconKey: ShopIconTextures.lure10kg,
     visualId: 'lure-10kg-weight',
     cost: 95,
     sinkSpeedMultiplier: 1.18,

@@ -1,6 +1,7 @@
 import { EventBus } from '../events/EventBus'
 import { GameEvents } from '../events/GameEvents'
 import type { ShopCatalogId, ShopCatalogItemState } from '../types/ShopCatalogTypes'
+import { resolveShopIconTextureKey } from '../utils/resolveShopIconTextureKey'
 import type { EconomySystem } from './EconomySystem'
 import type { CatalogSaveState } from './GameSaveSystem'
 
@@ -9,6 +10,8 @@ export interface ShopCatalogItemDefinition {
   displayName: string
   description: string
   textureKey: string
+  /** Optional square shop-row icon; falls back to textureKey when omitted. */
+  shopIconKey?: string
   cost: number
   starterOwned?: boolean
 }
@@ -72,11 +75,13 @@ export class ShopCatalogInventorySystem<TItem extends ShopCatalogItemDefinition>
       displayName: item.displayName,
       description: item.description,
       textureKey: item.textureKey,
+      iconTextureKey: resolveShopIconTextureKey(item),
       cost: item.cost,
       owned,
       equipped,
       affordable: !owned && item.cost > 0 && this.economy.canAfford(item.cost),
       statsSummary: this.options.statsSummary(item),
+      itemKind: 'equippable',
     }
   }
 

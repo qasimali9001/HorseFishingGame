@@ -16,5 +16,7 @@ export interface LureDefinition extends LureStats {
 export interface ShopLureDefinition extends LureDefinition {
   description: string
   cost: number
+  /** Optional square shop-row icon texture key. */
+  shopIconKey?: string
   starterOwned?: boolean
 }

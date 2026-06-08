@@ -17,7 +17,7 @@ export class HookCollisionSystem {
         continue
       }
       const reach = lure.hookRadius + f.radius
-      if (Phaser.Math.Distance.Squared(lure.x, lure.y, f.x, f.y) <= reach * reach) {
+      if (Phaser.Math.Distance.Squared(lure.baitX, lure.baitY, f.x, f.y) <= reach * reach) {
         return f
       }
     }

@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
 import { ShopUIConfig } from '../config/ShopUIConfig'
+import { ShopChromePainter } from './ShopChromePainter'
 
 type ToggleHandler = () => void
 
@@ -9,7 +10,8 @@ type ToggleHandler = () => void
 export class ShopToggleButton {
   private readonly scene: Phaser.Scene
   private readonly root: Phaser.GameObjects.Container
-  private readonly buttonBg: Phaser.GameObjects.Rectangle
+  private readonly buttonSkin: Phaser.GameObjects.Graphics
+  private readonly hitArea: Phaser.GameObjects.Rectangle
   private readonly cartIcon: Phaser.GameObjects.Graphics
   private readonly onToggle: ToggleHandler
 
@@ -18,32 +20,29 @@ export class ShopToggleButton {
     this.onToggle = onToggle
 
     this.root = this.scene.add.container(0, 0).setScrollFactor(0)
-    this.buttonBg = this.scene.add
-      .rectangle(0, 0, ShopUIConfig.iconButton.size, ShopUIConfig.iconButton.size, ShopUIConfig.iconButton.fillColor)
-      .setAlpha(ShopUIConfig.iconButton.fillAlpha)
-      .setStrokeStyle(ShopUIConfig.iconButton.strokeWidth, ShopUIConfig.iconButton.strokeColor)
+    this.buttonSkin = this.scene.add.graphics()
+    ShopChromePainter.drawButton(this.buttonSkin, ShopUIConfig.iconButton.size, ShopUIConfig.iconButton.size, 'close')
+    this.hitArea = this.scene.add
+      .rectangle(0, 0, ShopUIConfig.iconButton.size, ShopUIConfig.iconButton.size, 0xffffff, 0.001)
       .setInteractive({ useHandCursor: true })
-    this.buttonBg.on(Phaser.Input.Events.POINTER_DOWN, () => this.onToggle())
+    this.hitArea.on(Phaser.Input.Events.POINTER_DOWN, () => this.onToggle())
 
     this.cartIcon = this.scene.add.graphics()
     this.drawCartIcon()
 
-    this.root.add([this.buttonBg, this.cartIcon])
-    this.layout()
+    this.root.add([this.buttonSkin, this.hitArea, this.cartIcon])
   }
 
-  layout(): void {
-    const half = ShopUIConfig.iconButton.size * 0.5
-    this.root.setPosition(this.scene.scale.width - ShopUIConfig.iconButton.edgePadding - half, 86)
+  layoutAt(x: number, y: number): void {
+    this.root.setPosition(x, y)
   }
 
   setActive(isActive: boolean): void {
-    const activeAlpha = isActive ? 0.82 : ShopUIConfig.iconButton.fillAlpha
-    this.buttonBg.setAlpha(activeAlpha)
+    this.buttonSkin.setAlpha(isActive ? 0.82 : 1)
   }
 
   destroy(): void {
-    this.buttonBg.off(Phaser.Input.Events.POINTER_DOWN)
+    this.hitArea.off(Phaser.Input.Events.POINTER_DOWN)
     this.root.destroy(true)
   }
 

@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
 import { FishingConfig } from '../config/FishingConfig'
+import { getLureVisualLayout } from '../config/LureVisualConfig'
 import { LureMotionConfig } from '../config/LureMotionConfig'
 import { WorldConfig, worldRightX } from '../config/WorldConfig'
 import { DefaultLureId, getShopLureById } from '../data/lureData'
@@ -42,11 +43,16 @@ export class Lure {
   private hangTime = 0
   private showBaitMarker = true
   private definition: LureDefinition = getShopLureById(DefaultLureId)!
+  private baitOffsetX = 0
+  private baitOffsetY: number = FishingConfig.baitVisual.offsetY
 
   constructor(scene: Phaser.Scene) {
+    const layout = getLureVisualLayout(this.definition.visualId)
+    this.baitOffsetX = layout.baitOffsetX
+    this.baitOffsetY = layout.baitOffsetY
     this.sprite = scene.add
       .image(0, 0, this.definition.textureKey)
-      .setOrigin(FishingConfig.lure.originX, FishingConfig.lure.originY)
+      .setOrigin(layout.originX, layout.originY)
       .setScale(FishingConfig.lure.scale)
       .setDepth(9)
       .setVisible(false)
@@ -65,7 +71,11 @@ export class Lure {
 
   equipLure(definition: LureDefinition): void {
     this.definition = definition
-    this.sprite.setTexture(definition.textureKey)
+    const layout = getLureVisualLayout(definition.visualId)
+    this.baitOffsetX = layout.baitOffsetX
+    this.baitOffsetY = layout.baitOffsetY
+    this.sprite.setTexture(definition.textureKey).setOrigin(layout.originX, layout.originY)
+    this.syncBaitVisual()
   }
 
   get x(): number {
@@ -74,6 +84,15 @@ export class Lure {
 
   get y(): number {
     return this.sprite.y
+  }
+
+  /** World position of the hook bait point (mouth target for catches). */
+  get baitX(): number {
+    return this.sprite.x + this.baitOffsetX
+  }
+
+  get baitY(): number {
+    return this.sprite.y + this.baitOffsetY
   }
 
   /** Depth below the waterline (0 at/above surface). */
@@ -239,8 +258,8 @@ export class Lure {
     if (!this.showBaitMarker) {
       return
     }
-    this.baitVisual.x = this.sprite.x + FishingConfig.baitVisual.offsetX
-    this.baitVisual.y = this.sprite.y + FishingConfig.baitVisual.offsetY
+    this.baitVisual.x = this.sprite.x + this.baitOffsetX
+    this.baitVisual.y = this.sprite.y + this.baitOffsetY
   }
 
   private readonly onLureEquipped = (payload: { lure: LureDefinition }): void => {

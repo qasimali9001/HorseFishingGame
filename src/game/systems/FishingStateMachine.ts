@@ -116,8 +116,8 @@ export class FishingStateMachine {
 
     this.deps.spawn.update(dtSec, { lureUnderwater: fishing, maxDepth: spawnDepth })
     this.deps.fishAI.update(dtSec, this.deps.spawn.list, {
-      lureX: this.deps.lure.x,
-      lureY: this.deps.lure.y,
+      baitX: this.deps.lure.baitX,
+      baitY: this.deps.lure.baitY,
       lureActive: fishing && this.hookHasBait && !this.hookedFish,
       hookedFish: this.hookedFish,
     })
@@ -255,8 +255,8 @@ export class FishingStateMachine {
   private handleHooking(dtSec: number): void {
     if (this.hookedFish) {
       this.hookedFish.followLure(
-        this.deps.lure.x,
-        this.deps.lure.y,
+        this.deps.lure.baitX,
+        this.deps.lure.baitY,
         dtSec,
         this.deps.input.isReeling,
       )
@@ -272,7 +272,7 @@ export class FishingStateMachine {
     )
     if (caught) {
       caught.setHooked()
-      caught.snapToHook(this.deps.lure.x, this.deps.lure.y)
+      caught.snapToHook(this.deps.lure.baitX, this.deps.lure.baitY)
       this.deps.lure.setBaitVisible(false)
       this.hookedFish = caught
       EventBus.emit(GameEvents.FISH_HOOKED, { fishId: caught.def.id })

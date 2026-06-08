@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
 import { ShopUIConfig } from '../config/ShopUIConfig'
+import { ShopChromePainter } from './ShopChromePainter'
 import { ShopCatalogPanel } from './ShopCatalogPanel'
 import type { ShopCategoryDefinition, ShopCategoryId, ShopStateSnapshot } from '../types/ShopTypes'
 
@@ -10,8 +11,14 @@ export class ShopWindow {
   private readonly scene: Phaser.Scene
   private readonly root: Phaser.GameObjects.Container
   private readonly backdrop: Phaser.GameObjects.Rectangle
-  private readonly panel: Phaser.GameObjects.Rectangle
-  private readonly closeButtonBg: Phaser.GameObjects.Rectangle
+  private readonly frame: Phaser.GameObjects.Graphics
+  private readonly contentPanel: Phaser.GameObjects.Graphics
+  private readonly panelHitArea: Phaser.GameObjects.Rectangle
+  private readonly moneyPanel: Phaser.GameObjects.Graphics
+  private readonly coinIcon: Phaser.GameObjects.Graphics
+  private readonly closeButtonSkin: Phaser.GameObjects.Graphics
+  private readonly closeButtonHitArea: Phaser.GameObjects.Rectangle
+  private readonly titleShadow: Phaser.GameObjects.Text
   private readonly closeButtonLabel: Phaser.GameObjects.Text
   private readonly title: Phaser.GameObjects.Text
   private readonly subtitle: Phaser.GameObjects.Text
@@ -53,56 +60,79 @@ export class ShopWindow {
       .setInteractive({ useHandCursor: true })
     this.backdrop.on(Phaser.Input.Events.POINTER_DOWN, () => handlers.onCloseRequested())
 
-    this.panel = this.scene.add
-      .rectangle(0, 0, ShopUIConfig.window.width, ShopUIConfig.window.height, ShopUIConfig.window.panelColor)
-      .setStrokeStyle(ShopUIConfig.window.panelBorderWidth, ShopUIConfig.window.panelBorderColor)
-      .setAlpha(ShopUIConfig.window.panelAlpha)
+    this.frame = this.scene.add.graphics()
+    this.contentPanel = this.scene.add.graphics()
+    this.panelHitArea = this.scene.add
+      .rectangle(0, 0, ShopUIConfig.window.width, ShopUIConfig.window.height, 0xffffff, 0.001)
+      .setInteractive()
+    this.panelHitArea.on(Phaser.Input.Events.POINTER_DOWN, () => undefined)
+    this.moneyPanel = this.scene.add.graphics()
+    this.coinIcon = this.scene.add.graphics()
+
+    this.titleShadow = this.scene.add
+      .text(0, 0, 'Shop Window', {
+        fontFamily: 'Georgia, serif',
+        fontSize: '38px',
+        color: '#1b0d05',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5, 0)
 
     this.title = this.scene.add
       .text(0, 0, 'Shop Window', {
-        fontFamily: 'monospace',
-        fontSize: '30px',
+        fontFamily: 'Georgia, serif',
+        fontSize: '38px',
         color: ShopUIConfig.window.titleColor,
+        fontStyle: 'bold',
       })
       .setOrigin(0.5, 0)
 
     this.subtitle = this.scene.add
       .text(0, 0, 'Buy rods, boats, lures, and investments.', {
-        fontFamily: 'monospace',
-        fontSize: '15px',
-        color: ShopUIConfig.window.subtitleColor,
+        fontFamily: 'Georgia, serif',
+        fontSize: '17px',
+        color: ShopUIConfig.window.titleColor,
+        fontStyle: 'bold',
       })
-      .setOrigin(0.5, 0)
+      .setOrigin(0, 0)
 
     this.moneyText = this.scene.add
       .text(0, 0, '$0', {
-        fontFamily: 'monospace',
-        fontSize: '17px',
-        color: '#ffe08a',
+        fontFamily: 'Georgia, serif',
+        fontSize: '20px',
+        color: ShopUIConfig.window.money.valueColor,
+        fontStyle: 'bold',
       })
       .setOrigin(0, 0.5)
 
-    this.closeButtonBg = this.scene.add
-      .rectangle(0, 0, 56, 32, 0x234055, 0.95)
-      .setStrokeStyle(2, 0xa6d9ed)
+    this.closeButtonSkin = this.scene.add.graphics()
+    this.closeButtonHitArea = this.scene.add
+      .rectangle(0, 0, 104, 42, 0xffffff, 0.001)
       .setInteractive({ useHandCursor: true })
-    this.closeButtonBg.on(Phaser.Input.Events.POINTER_DOWN, () => handlers.onCloseRequested())
+    this.closeButtonHitArea.on(Phaser.Input.Events.POINTER_DOWN, () => handlers.onCloseRequested())
 
     this.closeButtonLabel = this.scene.add
       .text(0, 0, 'Close', {
-        fontFamily: 'monospace',
-        fontSize: '14px',
-        color: '#ebf7ff',
+        fontFamily: 'Georgia, serif',
+        fontSize: '20px',
+        color: '#2a160a',
+        fontStyle: 'bold',
       })
       .setOrigin(0.5)
 
     this.root.add([
       this.backdrop,
-      this.panel,
+      this.frame,
+      this.contentPanel,
+      this.panelHitArea,
+      this.moneyPanel,
+      this.coinIcon,
+      this.titleShadow,
       this.title,
       this.subtitle,
       this.moneyText,
-      this.closeButtonBg,
+      this.closeButtonSkin,
+      this.closeButtonHitArea,
       this.closeButtonLabel,
     ])
     this.layout()
@@ -136,19 +166,42 @@ export class ShopWindow {
     const centerY = this.scene.scale.height * 0.5
     const panelTop = centerY - ShopUIConfig.window.height * 0.5
 
-    this.panel.setPosition(centerX, centerY)
-    this.title.setPosition(centerX, panelTop + 16)
-    this.subtitle.setPosition(centerX, panelTop + 52)
-    this.moneyText.setPosition(centerX - ShopUIConfig.window.width * 0.5 + 20, panelTop + 84)
+    const contentWidth = ShopUIConfig.catalogList.rowWidth + 22
+    const contentHeight = ShopUIConfig.window.height - 92
+    const contentTop = panelTop + 76
+    const contentPanelLeft = centerX - contentWidth * 0.5
+    const contentPanelRight = centerX + contentWidth * 0.5
+    const controlY = panelTop + 116
+    const controlInset = 8
+    const moneyX = contentPanelLeft + controlInset + ShopUIConfig.window.money.width * 0.5
+    const closeX = contentPanelRight - controlInset - 52
 
-    this.closeButtonBg.setPosition(centerX + ShopUIConfig.window.width * 0.5 - 48, panelTop + 26)
-    this.closeButtonLabel.setPosition(this.closeButtonBg.x, this.closeButtonBg.y)
+    this.frame.setPosition(centerX, centerY)
+    ShopChromePainter.drawWindowFrame(this.frame, ShopUIConfig.window.width, ShopUIConfig.window.height)
+    this.contentPanel.setPosition(centerX, contentTop + contentHeight * 0.5)
+    ShopChromePainter.drawParchmentPanel(this.contentPanel, contentWidth, contentHeight, 12)
+    this.panelHitArea.setPosition(centerX, centerY)
+    this.moneyPanel.setPosition(moneyX, controlY)
+    ShopChromePainter.drawParchmentPanel(this.moneyPanel, ShopUIConfig.window.money.width, ShopUIConfig.window.money.height, 8)
+    this.coinIcon.setPosition(moneyX - 84, controlY)
+    ShopChromePainter.drawCoin(this.coinIcon, ShopUIConfig.window.money.coinRadius)
+
+    this.titleShadow.setPosition(centerX + 3, panelTop + 19)
+    this.title.setPosition(centerX, panelTop + 14)
+    this.subtitle.setPosition(centerX - this.subtitle.width * 0.5, panelTop + 56)
+    this.moneyText.setPosition(moneyX - 58, controlY)
+
+    this.closeButtonSkin.setPosition(closeX, controlY)
+    ShopChromePainter.drawButton(this.closeButtonSkin, 104, 42, 'close')
+    this.closeButtonHitArea.setPosition(closeX, controlY)
+    this.closeButtonLabel.setPosition(closeX, controlY)
     this.layoutDynamicContent(centerX, panelTop)
   }
 
   destroy(): void {
     this.backdrop.off(Phaser.Input.Events.POINTER_DOWN)
-    this.closeButtonBg.off(Phaser.Input.Events.POINTER_DOWN)
+    this.panelHitArea.off(Phaser.Input.Events.POINTER_DOWN)
+    this.closeButtonHitArea.off(Phaser.Input.Events.POINTER_DOWN)
     this.clearDynamicContent()
     this.catalogPanel.destroy()
     this.root.destroy(true)
@@ -168,17 +221,18 @@ export class ShopWindow {
 
     const categoryTitle = this.scene.add
       .text(0, 0, selectedCategory.title, {
-        fontFamily: 'monospace',
-        fontSize: '20px',
+        fontFamily: 'Georgia, serif',
+        fontSize: '30px',
         color: ShopUIConfig.window.cardTextColor,
         fontStyle: 'bold',
       })
       .setOrigin(0, 0)
     const categoryDesc = this.scene.add
       .text(0, 0, selectedCategory.description, {
-        fontFamily: 'monospace',
-        fontSize: '13px',
+        fontFamily: 'Georgia, serif',
+        fontSize: '17px',
         color: ShopUIConfig.window.cardSubtextColor,
+        fontStyle: 'bold',
       })
       .setOrigin(0, 0)
     this.trackDynamic(categoryTitle, categoryDesc)
@@ -199,10 +253,11 @@ export class ShopWindow {
     const { width: tabWidth, height: tabHeight } = ShopUIConfig.tabs
     for (const category of categories) {
       const selected = category.id === this.selectedCategoryId
-      const fill = selected ? ShopUIConfig.window.cardActiveColor : ShopUIConfig.window.cardColor
+      const buttonSkin = this.scene.add.graphics()
+      ShopChromePainter.drawTab(buttonSkin, tabWidth, tabHeight, selected)
+
       const button = this.scene.add
-        .rectangle(0, 0, tabWidth, tabHeight, fill, 0.95)
-        .setStrokeStyle(1, ShopUIConfig.window.cardBorderColor)
+        .rectangle(0, 0, tabWidth, tabHeight, 0xffffff, 0.001)
         .setInteractive({ useHandCursor: true })
       button.on(Phaser.Input.Events.POINTER_DOWN, () => {
         this.selectedCategoryId = category.id
@@ -211,13 +266,14 @@ export class ShopWindow {
 
       const label = this.scene.add
         .text(0, 0, category.title, {
-          fontFamily: 'monospace',
-          fontSize: '14px',
-          color: ShopUIConfig.window.cardTextColor,
+          fontFamily: 'Georgia, serif',
+          fontSize: '20px',
+          color: selected ? '#fff0ce' : ShopUIConfig.window.cardTextColor,
+          fontStyle: 'bold',
         })
         .setOrigin(0.5)
 
-      this.trackDynamic(button, label)
+      this.trackDynamic(buttonSkin, button, label)
     }
   }
 
@@ -250,18 +306,21 @@ export class ShopWindow {
     const tabStartX = centerX - tabsWidth * 0.5 + tabWidth * 0.5
     const tabY = panelTop + tabYOffset
     for (let i = 0; i < categories.length; i += 1) {
-      const button = this.dynamicObjects[index] as Phaser.GameObjects.Rectangle
-      const label = this.dynamicObjects[index + 1] as Phaser.GameObjects.Text
-      button.setPosition(tabStartX + i * (tabWidth + tabGap), tabY)
-      label.setPosition(button.x, button.y)
-      index += 2
+      const buttonSkin = this.dynamicObjects[index] as Phaser.GameObjects.Graphics
+      const button = this.dynamicObjects[index + 1] as Phaser.GameObjects.Rectangle
+      const label = this.dynamicObjects[index + 2] as Phaser.GameObjects.Text
+      const x = tabStartX + i * (tabWidth + tabGap)
+      buttonSkin.setPosition(x, tabY)
+      button.setPosition(x, tabY)
+      label.setPosition(x, tabY)
+      index += 3
     }
 
     const contentLeft = centerX - ShopUIConfig.window.width * 0.5 + ShopUIConfig.window.contentInsetX
     const title = this.dynamicObjects[index] as Phaser.GameObjects.Text
     const desc = this.dynamicObjects[index + 1] as Phaser.GameObjects.Text
-    title.setPosition(contentLeft, panelTop + 152)
-    desc.setPosition(contentLeft, panelTop + 176)
+    title.setPosition(contentLeft + 18, panelTop + 190)
+    desc.setPosition(contentLeft + 58, panelTop + 220)
     index += 2
 
     if (this.activeCatalogId) {

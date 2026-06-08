@@ -4,8 +4,8 @@ import { canEatFishSize } from '../utils/FishSizeRank'
 import type { Fish } from '../entities/Fish'
 
 export interface FishAIContext {
-  lureX: number
-  lureY: number
+  baitX: number
+  baitY: number
   /** Only react to the lure while it is actually fishing underwater. */
   lureActive: boolean
   /** Other fish can also react to the currently caught fish. */
@@ -84,8 +84,8 @@ export class FishAISystem {
   ): { dx: number; dy: number; dist: number } | null {
     const candidates: Array<{ dx: number; dy: number; dist: number }> = []
     if (ctx.lureActive) {
-      const dx = ctx.lureX - fish.x
-      const dy = ctx.lureY - fish.y
+      const dx = ctx.baitX - fish.x
+      const dy = ctx.baitY - fish.y
       candidates.push({ dx, dy, dist: Math.hypot(dx, dy) })
     }
     if (ctx.hookedFish && this.canEatHookedFish(fish, ctx.hookedFish)) {

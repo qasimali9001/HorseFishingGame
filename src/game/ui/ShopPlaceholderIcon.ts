@@ -13,8 +13,8 @@ export class ShopPlaceholderIcon {
   ): Phaser.GameObjects.Container {
     const container = scene.add.container(0, 0)
     const backdrop = scene.add
-      .rectangle(0, 0, width, height, 0x0a1822, 0.95)
-      .setStrokeStyle(1, 0x3d5668)
+      .rectangle(0, 0, width, height, 0xddc184, 0.95)
+      .setStrokeStyle(1, 0x3a210d)
     const graphics = scene.add.graphics()
     ShopPlaceholderIcon.draw(graphics, kind, width, height)
     container.add([backdrop, graphics])
@@ -29,8 +29,8 @@ export class ShopPlaceholderIcon {
   ): void {
     const cx = width * 0.5
     const cy = height * 0.5
-    const fill = 0x2a3f4f
-    const highlight = 0x3a5568
+    const fill = 0x80683f
+    const highlight = 0xa28450
 
     graphics.fillStyle(fill, 1)
 

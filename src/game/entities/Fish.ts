@@ -154,11 +154,11 @@ export class Fish {
     this.facing.scaleX = FishOrientation.scaleXForVelocity(this.vx)
   }
 
-  /** Instantly place mouth on hook (used right when contact happens). */
-  snapToHook(lureX: number, lureY: number): void {
+  /** Instantly place mouth on the bait/hook point (used right when contact happens). */
+  snapToHook(hookX: number, hookY: number): void {
     const target = FishHookedPose.bodyTargetAtHookFromLead(
-      lureX,
-      lureY,
+      hookX,
+      hookY,
       this.hookedMouthLead,
     )
     this.container.x = target.x
@@ -166,8 +166,8 @@ export class Fish {
     FishHookedPose.applyVisual(this.facing, 0)
   }
 
-  /** Hooked fish tracks hook; tighter follow while reeling upward. */
-  followLure(lureX: number, lureY: number, dtSec: number, reeling = false): void {
+  /** Hooked fish tracks the bait/hook point; tighter follow while reeling upward. */
+  followLure(hookX: number, hookY: number, dtSec: number, reeling = false): void {
     const pose = FishConfig.hookedPose
     const followLerp = reeling
       ? FishConfig.hookedFollowLerpWhileReeling
@@ -175,8 +175,8 @@ export class Fish {
     const t = 1 - Math.pow(1 - followLerp, dtSec * 60)
 
     const target = FishHookedPose.bodyTargetAtHookFromLead(
-      lureX,
-      lureY,
+      hookX,
+      hookY,
       this.hookedMouthLead,
     )
 

@@ -1,6 +1,7 @@
 import Phaser from 'phaser'
 import { SettingsUIConfig } from '../config/SettingsUIConfig'
 import { audioSettings } from '../systems/AudioSettingsSystem'
+import { ShopChromePainter } from './ShopChromePainter'
 import { VolumeSlider } from './VolumeSlider'
 
 /**
@@ -10,8 +11,12 @@ export class SettingsWindow {
   private readonly scene: Phaser.Scene
   private readonly root: Phaser.GameObjects.Container
   private readonly backdrop: Phaser.GameObjects.Rectangle
-  private readonly panel: Phaser.GameObjects.Rectangle
-  private readonly closeButtonBg: Phaser.GameObjects.Rectangle
+  private readonly frame: Phaser.GameObjects.Graphics
+  private readonly contentPanel: Phaser.GameObjects.Graphics
+  private readonly panelHitArea: Phaser.GameObjects.Rectangle
+  private readonly closeButtonSkin: Phaser.GameObjects.Graphics
+  private readonly closeButtonHitArea: Phaser.GameObjects.Rectangle
+  private readonly titleShadow: Phaser.GameObjects.Text
   private readonly closeButtonLabel: Phaser.GameObjects.Text
   private readonly title: Phaser.GameObjects.Text
   private readonly subtitle: Phaser.GameObjects.Text
@@ -29,39 +34,52 @@ export class SettingsWindow {
       .setInteractive({ useHandCursor: true })
     this.backdrop.on(Phaser.Input.Events.POINTER_DOWN, () => handlers.onCloseRequested())
 
-    this.panel = this.scene.add
-      .rectangle(0, 0, SettingsUIConfig.window.width, SettingsUIConfig.window.height, SettingsUIConfig.window.panelColor)
-      .setStrokeStyle(SettingsUIConfig.window.panelBorderWidth, SettingsUIConfig.window.panelBorderColor)
-      .setAlpha(SettingsUIConfig.window.panelAlpha)
+    this.frame = this.scene.add.graphics()
+    this.contentPanel = this.scene.add.graphics()
+    this.panelHitArea = this.scene.add
+      .rectangle(0, 0, SettingsUIConfig.window.width, SettingsUIConfig.window.height, 0xffffff, 0.001)
       .setInteractive()
+    this.panelHitArea.on(Phaser.Input.Events.POINTER_DOWN, () => undefined)
+
+    this.titleShadow = this.scene.add
+      .text(0, 0, 'Settings', {
+        fontFamily: 'Georgia, serif',
+        fontSize: '34px',
+        color: '#1b0d05',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5, 0)
 
     this.title = this.scene.add
       .text(0, 0, 'Settings', {
-        fontFamily: 'monospace',
-        fontSize: '30px',
+        fontFamily: 'Georgia, serif',
+        fontSize: '34px',
         color: SettingsUIConfig.window.titleColor,
+        fontStyle: 'bold',
       })
       .setOrigin(0.5, 0)
 
     this.subtitle = this.scene.add
       .text(0, 0, 'Adjust audio levels.', {
-        fontFamily: 'monospace',
-        fontSize: '15px',
+        fontFamily: 'Georgia, serif',
+        fontSize: '18px',
         color: SettingsUIConfig.window.subtitleColor,
+        fontStyle: 'bold',
       })
       .setOrigin(0.5, 0)
 
-    this.closeButtonBg = this.scene.add
-      .rectangle(0, 0, 56, 32, 0x234055, 0.95)
-      .setStrokeStyle(2, 0xa6d9ed)
+    this.closeButtonSkin = this.scene.add.graphics()
+    this.closeButtonHitArea = this.scene.add
+      .rectangle(0, 0, 92, 38, 0xffffff, 0.001)
       .setInteractive({ useHandCursor: true })
-    this.closeButtonBg.on(Phaser.Input.Events.POINTER_DOWN, () => handlers.onCloseRequested())
+    this.closeButtonHitArea.on(Phaser.Input.Events.POINTER_DOWN, () => handlers.onCloseRequested())
 
     this.closeButtonLabel = this.scene.add
       .text(0, 0, 'Close', {
-        fontFamily: 'monospace',
-        fontSize: '14px',
-        color: '#ebf7ff',
+        fontFamily: 'Georgia, serif',
+        fontSize: '18px',
+        color: '#2a160a',
+        fontStyle: 'bold',
       })
       .setOrigin(0.5)
 
@@ -81,10 +99,14 @@ export class SettingsWindow {
 
     this.root.add([
       this.backdrop,
-      this.panel,
+      this.frame,
+      this.contentPanel,
+      this.panelHitArea,
+      this.titleShadow,
       this.title,
       this.subtitle,
-      this.closeButtonBg,
+      this.closeButtonSkin,
+      this.closeButtonHitArea,
       this.closeButtonLabel,
       this.musicSlider.root,
       this.sfxSlider.root,
@@ -112,11 +134,18 @@ export class SettingsWindow {
     const panelTop = centerY - SettingsUIConfig.window.height * 0.5
     const contentLeft = centerX - SettingsUIConfig.slider.trackWidth * 0.5
 
-    this.panel.setPosition(centerX, centerY)
-    this.title.setPosition(centerX, panelTop + 16)
-    this.subtitle.setPosition(centerX, panelTop + 52)
-    this.closeButtonBg.setPosition(centerX + SettingsUIConfig.window.width * 0.5 - 48, panelTop + 26)
-    this.closeButtonLabel.setPosition(this.closeButtonBg.x, this.closeButtonBg.y)
+    this.frame.setPosition(centerX, centerY)
+    ShopChromePainter.drawWindowFrame(this.frame, SettingsUIConfig.window.width, SettingsUIConfig.window.height)
+    this.contentPanel.setPosition(centerX, centerY + 30)
+    ShopChromePainter.drawParchmentPanel(this.contentPanel, SettingsUIConfig.window.width - 54, SettingsUIConfig.window.height - 112, 10)
+    this.panelHitArea.setPosition(centerX, centerY)
+    this.titleShadow.setPosition(centerX + 3, panelTop + 19)
+    this.title.setPosition(centerX, panelTop + 14)
+    this.subtitle.setPosition(centerX, panelTop + 58)
+    this.closeButtonSkin.setPosition(centerX + SettingsUIConfig.window.width * 0.5 - 74, panelTop + 37)
+    ShopChromePainter.drawButton(this.closeButtonSkin, 92, 38, 'close')
+    this.closeButtonHitArea.setPosition(this.closeButtonSkin.x, this.closeButtonSkin.y)
+    this.closeButtonLabel.setPosition(this.closeButtonSkin.x, this.closeButtonSkin.y)
 
     this.musicSlider.root.setPosition(contentLeft, panelTop + SettingsUIConfig.slider.firstRowYOffset)
     this.sfxSlider.root.setPosition(
@@ -127,7 +156,8 @@ export class SettingsWindow {
 
   destroy(): void {
     this.backdrop.off(Phaser.Input.Events.POINTER_DOWN)
-    this.closeButtonBg.off(Phaser.Input.Events.POINTER_DOWN)
+    this.panelHitArea.off(Phaser.Input.Events.POINTER_DOWN)
+    this.closeButtonHitArea.off(Phaser.Input.Events.POINTER_DOWN)
     this.musicSlider.destroy()
     this.sfxSlider.destroy()
     this.root.destroy(true)

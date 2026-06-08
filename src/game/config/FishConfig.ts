@@ -71,13 +71,13 @@ export const FishConfig = {
   hookedRenderDepth: 10,
 
   /**
-   * Hooked pose relative to the lure anchor (bobber eyelet). Mouth meets the
-   * hook; body hangs with tail pointing downward (+y).
+   * Hooked pose relative to the lure bait point (see Lure.baitX/baitY). Mouth
+   * meets the hook; body hangs with tail pointing downward (+y).
    */
   hookedPose: {
-    /** Hook position offset from lure world position. */
+    /** Fine-tune mouth vs bait marker (world units). */
     hookOffsetX: 0,
-    hookOffsetY: 34,
+    hookOffsetY: 0,
     /** Mouth inset from sprite edge as a fraction of display width (art faces left). */
     mouthLeadWidthScale: 0.48,
     /** Mouth up, tail down (+y) for left-facing PNG art in Phaser rotation space. */

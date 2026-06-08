@@ -35,24 +35,26 @@ export class VolumeSlider {
 
     this.label = scene.add
       .text(0, -28, label, {
-        fontFamily: 'monospace',
-        fontSize: '16px',
+        fontFamily: 'Georgia, serif',
+        fontSize: '18px',
         color: SettingsUIConfig.slider.labelColor,
+        fontStyle: 'bold',
       })
       .setOrigin(0, 0.5)
 
     this.valueText = scene.add
       .text(this.trackWidth, -28, '', {
-        fontFamily: 'monospace',
-        fontSize: '15px',
+        fontFamily: 'Georgia, serif',
+        fontSize: '17px',
         color: SettingsUIConfig.slider.valueColor,
+        fontStyle: 'bold',
       })
       .setOrigin(1, 0.5)
 
     this.track = scene.add
       .rectangle(0, 0, this.trackWidth, SettingsUIConfig.slider.trackHeight, SettingsUIConfig.slider.trackColor, 0.95)
       .setOrigin(0, 0.5)
-      .setStrokeStyle(1, SettingsUIConfig.slider.trackBorderColor)
+      .setStrokeStyle(2, SettingsUIConfig.slider.trackBorderColor)
       .setInteractive({ useHandCursor: true })
 
     this.fill = scene.add

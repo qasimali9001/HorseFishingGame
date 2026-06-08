@@ -12,6 +12,7 @@ import type { EconomySystem } from './EconomySystem'
 import type { ShopCatalogSavePort } from './ShopCatalogInventorySystem'
 import { ShopCatalogInventorySystem } from './ShopCatalogInventorySystem'
 import { createLureCatalogInventory, createRodCatalogInventory } from './shopCatalogInventories'
+import type { InvestmentCatalogPort } from './InvestmentSystem'
 
 /**
  * Emits read-only shop snapshots for the UI and routes catalog purchases.
@@ -19,13 +20,16 @@ import { createLureCatalogInventory, createRodCatalogInventory } from './shopCat
 export class ShopSystem {
   private readonly rods: ShopCatalogInventorySystem<(typeof import('../data/rodData').ShopRods)[number]>
   private readonly lures: ShopCatalogInventorySystem<(typeof import('../data/lureData').ShopLures)[number]>
+  private readonly investments: InvestmentCatalogPort
 
   constructor(
     private readonly economy: EconomySystem,
-    persistence?: ShopCatalogSavePort,
+    persistence: ShopCatalogSavePort | undefined,
+    investments: InvestmentCatalogPort,
   ) {
     this.rods = createRodCatalogInventory(economy, persistence)
     this.lures = createLureCatalogInventory(economy, persistence)
+    this.investments = investments
 
     EventBus.on(GameEvents.SHOP_STATE_REQUESTED, this.onStateRequested)
     EventBus.on(GameEvents.MONEY_CHANGED, this.onMoneyChanged)
@@ -49,7 +53,11 @@ export class ShopSystem {
         rods: this.buildCatalogSection(this.rods.getShopItemStates(), RodPlaceholders, 'rod'),
         boats: this.buildCatalogSection([], BoatPlaceholders, 'boat'),
         lures: this.buildCatalogSection(this.lures.getShopItemStates(), LurePlaceholders, 'lure'),
-        investments: this.buildCatalogSection([], InvestmentPlaceholders, 'investment'),
+        investments: this.buildCatalogSection(
+          this.investments.getShopItemStates(),
+          InvestmentPlaceholders,
+          'investment',
+        ),
       },
     }
     EventBus.emit(GameEvents.SHOP_STATE_CHANGED, snapshot)

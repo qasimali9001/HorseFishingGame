@@ -3,8 +3,10 @@ import { SceneKeys } from './SceneKeys'
 import { DebugConfig } from '../config/DebugConfig'
 import { EventBus } from '../events/EventBus'
 import { GameEvents } from '../events/GameEvents'
+import { HudUIConfig } from '../config/HudUIConfig'
 import { ShopToggleButton } from '../ui/ShopToggleButton'
 import { ShopWindow } from '../ui/ShopWindow'
+import { ShopChromePainter } from '../ui/ShopChromePainter'
 import { SettingsToggleButton } from '../ui/SettingsToggleButton'
 import { SettingsWindow } from '../ui/SettingsWindow'
 import { QuestPanel } from '../ui/QuestPanel'
@@ -74,9 +76,12 @@ interface QuestCompletedPayload {
  */
 export class UIScene extends Phaser.Scene {
   private debugText?: Phaser.GameObjects.Text
+  private moneyPanel?: Phaser.GameObjects.Graphics
+  private moneyCoin?: Phaser.GameObjects.Graphics
   private moneyText?: Phaser.GameObjects.Text
   private catchText?: Phaser.GameObjects.Text
   private biomeText?: Phaser.GameObjects.Text
+  private baitPanel?: Phaser.GameObjects.Graphics
   private baitText?: Phaser.GameObjects.Text
   private decisionText?: Phaser.GameObjects.Text
   private sellButtonBg?: Phaser.GameObjects.Rectangle
@@ -105,24 +110,85 @@ export class UIScene extends Phaser.Scene {
     this.createQuestUI()
     this.createShopUI()
     this.createSettingsUI()
+    this.layoutHudChrome()
+    this.scale.on(Phaser.Scale.Events.RESIZE, this.layoutHudChrome, this)
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.scale.off(Phaser.Scale.Events.RESIZE, this.layoutHudChrome, this)
+    })
     audioSettings.applyToMusic()
     this.shutdownCleanup()
   }
 
   private createMoneyDisplay(): void {
+    this.moneyPanel = this.add.graphics().setScrollFactor(0)
+    this.moneyCoin = this.add.graphics().setScrollFactor(0)
     this.moneyText = this.add
-      .text(this.scale.width - 18, 16, '$0', {
-        color: '#ffe08a',
-        fontSize: '28px',
-        fontFamily: 'monospace',
+      .text(0, 0, '$0', {
+        color: '#287c2b',
+        fontSize: '23px',
+        fontFamily: 'Georgia, serif',
+        fontStyle: 'bold',
       })
-      .setOrigin(1, 0)
+      .setOrigin(0, 0.5)
       .setScrollFactor(0)
 
-    const onMoney = (p: MoneyPayload) => this.moneyText?.setText(`$${p.money}`)
+    const onMoney = (p: MoneyPayload) => {
+      this.moneyText?.setText(`$${p.money}`)
+      this.layoutHudChrome()
+    }
     EventBus.on(GameEvents.MONEY_CHANGED, onMoney)
     EventBus.emit(GameEvents.MONEY_STATE_REQUESTED)
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => EventBus.off(GameEvents.MONEY_CHANGED, onMoney))
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      EventBus.off(GameEvents.MONEY_CHANGED, onMoney)
+    })
+  }
+
+  private layoutHudChrome(): void {
+    this.layoutTopRightHud()
+    this.layoutLeftHud()
+  }
+
+  private layoutTopRightHud(): void {
+    if (!this.moneyPanel || !this.moneyCoin || !this.moneyText) {
+      return
+    }
+
+    const { topPadding, edgePadding, iconGap, iconSize, moneyHeight, moneyMinWidth } = HudUIConfig
+    const rowCenterY = topPadding + iconSize * 0.5
+    const moneyWidth = Math.max(moneyMinWidth, this.moneyText.width + 58)
+    const rightEdge = this.scale.width - edgePadding
+    const halfIcon = iconSize * 0.5
+
+    const settingsX = rightEdge - halfIcon
+    const shopX = settingsX - iconSize - iconGap
+    const moneyCenterX = shopX - halfIcon - iconGap - moneyWidth * 0.5
+
+    this.moneyPanel.setPosition(moneyCenterX, rowCenterY)
+    ShopChromePainter.drawParchmentPanel(this.moneyPanel, moneyWidth, moneyHeight, 8)
+    this.moneyCoin.setPosition(moneyCenterX - moneyWidth * 0.5 + 22, rowCenterY)
+    ShopChromePainter.drawCoin(this.moneyCoin, 14)
+    this.moneyText.setPosition(moneyCenterX - moneyWidth * 0.5 + 42, rowCenterY)
+
+    this.shopButton?.layoutAt(shopX, rowCenterY)
+    this.settingsButton?.layoutAt(settingsX, rowCenterY)
+  }
+
+  private layoutLeftHud(): void {
+    if (!this.baitPanel || !this.baitText) {
+      return
+    }
+
+    const { topPadding, edgePadding, columnGap } = HudUIConfig
+    const baitWidth = this.baitText.width + 24
+    const baitHeight = this.baitText.height + 14
+    const baitCenterX = edgePadding + baitWidth * 0.5
+    const baitCenterY = topPadding + baitHeight * 0.5
+
+    this.baitPanel.setPosition(baitCenterX, baitCenterY)
+    ShopChromePainter.drawParchmentPanel(this.baitPanel, baitWidth, baitHeight, 7)
+    this.baitText.setPosition(edgePadding + 12, baitCenterY)
+
+    this.questPanel?.setTop(topPadding + baitHeight + columnGap)
   }
 
   private createCatchNotifier(): void {
@@ -197,17 +263,21 @@ export class UIScene extends Phaser.Scene {
   }
 
   private createBaitDisplay(): void {
+    this.baitPanel = this.add.graphics().setScrollFactor(0)
     this.baitText = this.add
-      .text(18, 50, 'Bait: Small Bait', {
-        color: '#f7f7f7',
-        fontSize: '18px',
-        fontFamily: 'monospace',
-        backgroundColor: '#00000055',
-        padding: { x: 8, y: 4 },
+      .text(0, 0, 'Bait: Small Bait', {
+        color: '#2a160a',
+        fontSize: '17px',
+        fontFamily: 'Georgia, serif',
+        fontStyle: 'bold',
       })
+      .setOrigin(0, 0.5)
       .setScrollFactor(0)
 
-    const onBait = (p: BaitChangedPayload) => this.baitText?.setText(`Bait: ${p.label}`)
+    const onBait = (p: BaitChangedPayload) => {
+      this.baitText?.setText(`Bait: ${p.label}`)
+      this.layoutHudChrome()
+    }
     EventBus.on(GameEvents.BAIT_CHANGED, onBait)
     EventBus.emit(GameEvents.BAIT_STATE_REQUESTED)
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => EventBus.off(GameEvents.BAIT_CHANGED, onBait))
@@ -364,7 +434,6 @@ export class UIScene extends Phaser.Scene {
   }
 
   private handleShopResize(): void {
-    this.shopButton?.layout()
     this.shopWindow?.layout()
   }
 
@@ -396,7 +465,6 @@ export class UIScene extends Phaser.Scene {
   }
 
   private handleSettingsResize(): void {
-    this.settingsButton?.layout()
     this.settingsWindow?.layout()
   }
 

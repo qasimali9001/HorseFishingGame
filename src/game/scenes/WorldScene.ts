@@ -23,6 +23,7 @@ import { PredatorSystem } from '../systems/PredatorSystem'
 import { HookCollisionSystem } from '../systems/HookCollisionSystem'
 import { EconomySystem } from '../systems/EconomySystem'
 import { GameSaveSystem } from '../systems/GameSaveSystem'
+import { InvestmentSystem } from '../systems/InvestmentSystem'
 import { ShopSystem } from '../systems/ShopSystem'
 import { FishingStateMachine } from '../systems/FishingStateMachine'
 import { BaitSystem } from '../systems/BaitSystem'
@@ -52,6 +53,7 @@ export class WorldScene extends Phaser.Scene {
   private save!: GameSaveSystem
   private economy!: EconomySystem
   private shop!: ShopSystem
+  private investments!: InvestmentSystem
   private bait!: BaitSystem
   private catchDecision!: CatchDecisionSystem
   private quests!: QuestSystem
@@ -87,7 +89,8 @@ export class WorldScene extends Phaser.Scene {
     this.predators = new PredatorSystem(this, this.biomes)
     this.save = new GameSaveSystem()
     this.economy = new EconomySystem(this.save)
-    this.shop = new ShopSystem(this.economy, this.save)
+    this.investments = new InvestmentSystem(this.economy, this.save)
+    this.shop = new ShopSystem(this.economy, this.save, this.investments)
     this.stats = new PlayerStats(this.horse, this.lure)
     this.bait = new BaitSystem()
     this.catchDecision = new CatchDecisionSystem(this.economy, this.bait)
@@ -121,6 +124,7 @@ export class WorldScene extends Phaser.Scene {
       this.inputSystem.destroy()
       this.fishing.destroy()
       this.shop.destroy()
+      this.investments.destroy()
       this.quests.destroy()
       this.economy.destroy()
       this.bait.destroy()
@@ -136,6 +140,7 @@ export class WorldScene extends Phaser.Scene {
 
     // 1-2. Input + fishing state machine (also steps lure kinematics + camera).
     this.fishing.update(dtSec)
+    this.investments.update(dtSec)
 
     // 7. Line redraw (rod tip -> lure) after positions settle this frame.
     this.line.redraw(

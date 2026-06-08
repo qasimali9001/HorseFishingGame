@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
 import { QuestUIConfig } from '../config/QuestUIConfig'
+import { ShopChromePainter } from './ShopChromePainter'
 import type { QuestStateSnapshot } from '../types/QuestTypes'
 
 /**
@@ -8,7 +9,7 @@ import type { QuestStateSnapshot } from '../types/QuestTypes'
 export class QuestPanel {
   private readonly scene: Phaser.Scene
   private readonly root: Phaser.GameObjects.Container
-  private readonly background: Phaser.GameObjects.Rectangle
+  private readonly background: Phaser.GameObjects.Graphics
   private readonly titleText: Phaser.GameObjects.Text
   private readonly bodyText: Phaser.GameObjects.Text
   private readonly progressText: Phaser.GameObjects.Text
@@ -18,43 +19,44 @@ export class QuestPanel {
     this.scene = scene
     const cfg = QuestUIConfig.panel
 
-    this.root = this.scene.add.container(cfg.left, cfg.top).setScrollFactor(0)
+    this.root = this.scene.add.container(cfg.left, 0).setScrollFactor(0)
 
-    this.background = this.scene.add
-      .rectangle(0, 0, cfg.width, 80, cfg.fillColor, cfg.fillAlpha)
-      .setOrigin(0, 0)
-      .setStrokeStyle(cfg.borderWidth, cfg.borderColor)
+    this.background = this.scene.add.graphics()
 
     this.titleText = this.scene.add
       .text(cfg.paddingX, cfg.paddingY, 'Quest', {
-        fontFamily: 'monospace',
+        fontFamily: 'Georgia, serif',
         fontSize: cfg.titleFontSize,
         color: cfg.titleColor,
+        fontStyle: 'bold',
       })
       .setOrigin(0, 0)
 
     this.bodyText = this.scene.add
       .text(cfg.paddingX, 0, '', {
-        fontFamily: 'monospace',
+        fontFamily: 'Georgia, serif',
         fontSize: cfg.bodyFontSize,
         color: cfg.bodyColor,
         wordWrap: { width: cfg.width - cfg.paddingX * 2 },
+        fontStyle: 'bold',
       })
       .setOrigin(0, 0)
 
     this.progressText = this.scene.add
       .text(cfg.paddingX, 0, '', {
-        fontFamily: 'monospace',
+        fontFamily: 'Georgia, serif',
         fontSize: cfg.progressFontSize,
         color: cfg.progressColor,
+        fontStyle: 'bold',
       })
       .setOrigin(0, 0)
 
     this.rewardText = this.scene.add
       .text(cfg.paddingX, 0, '', {
-        fontFamily: 'monospace',
+        fontFamily: 'Georgia, serif',
         fontSize: cfg.rewardFontSize,
         color: cfg.rewardColor,
+        fontStyle: 'bold',
       })
       .setOrigin(0, 0)
 
@@ -88,6 +90,10 @@ export class QuestPanel {
     this.layoutTexts()
   }
 
+  setTop(top: number): void {
+    this.root.setY(top)
+  }
+
   destroy(): void {
     this.root.destroy(true)
   }
@@ -107,6 +113,7 @@ export class QuestPanel {
     this.rewardText.setPosition(x, rewardY)
 
     const contentHeight = rewardY + this.rewardText.height + cfg.paddingY
-    this.background.setSize(cfg.width, contentHeight)
+    this.background.setPosition(cfg.width * 0.5, contentHeight * 0.5)
+    ShopChromePainter.drawParchmentPanel(this.background, cfg.width, contentHeight, 8)
   }
 }

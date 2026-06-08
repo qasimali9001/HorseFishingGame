@@ -1,7 +1,9 @@
 import Phaser from 'phaser'
+import { ShopIconConfig } from '../config/ShopIconConfig'
 import { ShopUIConfig } from '../config/ShopUIConfig'
 import { RodSilhouetteCycle } from '../data/rodPlaceholderData'
 import { RodSilhouetteIcon } from './RodSilhouetteIcon'
+import { ShopChromePainter } from './ShopChromePainter'
 import { ShopPlaceholderIcon } from './ShopPlaceholderIcon'
 import type {
   ShopCatalogItemState,
@@ -15,11 +17,12 @@ export interface ShopCatalogPanelHandlers {
 }
 
 interface CatalogRowSlot {
-  row: Phaser.GameObjects.Rectangle
-  iconHost: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Container
+  row: Phaser.GameObjects.Graphics
+  iconHost: Phaser.GameObjects.Graphics | Phaser.GameObjects.Container
   icon?: Phaser.GameObjects.Image
   name: Phaser.GameObjects.Text
   detail: Phaser.GameObjects.Text
+  actionSkin: Phaser.GameObjects.Graphics
   actionButton: Phaser.GameObjects.Rectangle
   actionLabel: Phaser.GameObjects.Text
   badge?: Phaser.GameObjects.Text
@@ -96,8 +99,7 @@ export class ShopCatalogPanel {
   }
 
   private layoutRow(slot: CatalogRowSlot, centerX: number, top: number): void {
-    const { rowWidth, rowHeight, iconLeft, textLeft, iconSize, buttonRight, buttonBottom } =
-      ShopUIConfig.catalogList
+    const { rowWidth, rowHeight, iconLeft, textLeft, buttonRight, buttonBottom } = ShopUIConfig.catalogList
     const left = centerX - rowWidth * 0.5
     const yMid = top + rowHeight * 0.5
     const buttonY = top + rowHeight - buttonBottom
@@ -105,12 +107,13 @@ export class ShopCatalogPanel {
     slot.row.setPosition(centerX, yMid)
     slot.iconHost.setPosition(left + iconLeft, yMid)
     slot.icon?.setPosition(left + iconLeft, yMid)
-    slot.icon?.setScale(this.fitIconScale(slot.icon, iconSize - 8))
-    slot.name.setPosition(left + textLeft, top + 14)
-    slot.detail.setPosition(left + textLeft, top + 32)
+    slot.icon?.setScale(this.fitIconScale(slot.icon, ShopIconConfig.fitMaxSize))
+    slot.name.setPosition(left + textLeft, top + 9)
+    slot.detail.setPosition(left + textLeft, top + 31)
     if (slot.badge) {
-      slot.badge.setPosition(left + textLeft + slot.name.width + 8, top + 15)
+      slot.badge.setPosition(left + textLeft + slot.name.width + 12, top + 14)
     }
+    slot.actionSkin.setPosition(left + rowWidth - buttonRight, buttonY)
     slot.actionButton.setPosition(left + rowWidth - buttonRight, buttonY)
     slot.actionLabel.setPosition(slot.actionButton.x, slot.actionButton.y)
   }
@@ -140,23 +143,20 @@ export class ShopCatalogPanel {
   }
 
   private buildItemRow(item: ShopCatalogItemState): CatalogRowSlot {
-    const { rowWidth, rowHeight, iconSize, textWidth, buttonWidth, buttonHeight } = ShopUIConfig.catalogList
-    const fill = item.equipped ? ShopUIConfig.window.cardActiveColor : ShopUIConfig.window.cardColor
+    const { rowWidth, rowHeight, textWidth, buttonWidth, buttonHeight } = ShopUIConfig.catalogList
 
-    const row = this.scene.add
-      .rectangle(0, 0, rowWidth, rowHeight, fill, 0.94)
-      .setStrokeStyle(1, ShopUIConfig.window.cardBorderColor)
+    const row = this.scene.add.graphics()
+    ShopChromePainter.drawCatalogRow(row, rowWidth, rowHeight, false)
 
-    const iconHost = this.scene.add
-      .rectangle(0, 0, iconSize, iconSize, 0x0a2230, 0.95)
-      .setStrokeStyle(1, ShopUIConfig.window.cardBorderColor)
+    const iconHost = this.scene.add.graphics()
+    ShopChromePainter.drawIconCard(iconHost, ShopIconConfig.hostSize, ShopIconConfig.hostSize, false)
 
-    const icon = this.scene.add.image(0, 0, item.textureKey).setOrigin(0.5)
+    const icon = this.scene.add.image(0, 0, item.iconTextureKey).setOrigin(0.5)
 
     const name = this.scene.add
       .text(0, 0, item.displayName, {
-        fontFamily: 'monospace',
-        fontSize: '14px',
+        fontFamily: 'Georgia, serif',
+        fontSize: '22px',
         color: ShopUIConfig.window.cardTextColor,
         fontStyle: 'bold',
       })
@@ -169,18 +169,20 @@ export class ShopCatalogPanel {
 
     const detail = this.scene.add
       .text(0, 0, detailLine, {
-        fontFamily: 'monospace',
-        fontSize: '11px',
+        fontFamily: 'Georgia, serif',
+        fontSize: '12px',
         color: ShopUIConfig.window.cardSubtextColor,
         wordWrap: { width: textWidth },
-        lineSpacing: 2,
+        lineSpacing: 0,
+        fontStyle: 'bold',
       })
       .setOrigin(0, 0)
 
-    const { fill: actionFill, border: actionBorder, label, enabled, action } = this.actionForItem(item)
+    const { label, enabled, action } = this.actionForItem(item)
+    const actionSkin = this.scene.add.graphics()
+    ShopChromePainter.drawButton(actionSkin, buttonWidth, buttonHeight, enabled ? 'primary' : 'disabled')
     const actionButton = this.scene.add
-      .rectangle(0, 0, buttonWidth, buttonHeight, actionFill, 0.95)
-      .setStrokeStyle(1, actionBorder)
+      .rectangle(0, 0, buttonWidth, buttonHeight, 0xffffff, 0.001)
       .setInteractive({ useHandCursor: enabled })
 
     if (enabled && action) {
@@ -195,9 +197,10 @@ export class ShopCatalogPanel {
 
     const actionLabel = this.scene.add
       .text(0, 0, label, {
-        fontFamily: 'monospace',
-        fontSize: '12px',
-        color: '#ebfff2',
+        fontFamily: 'Georgia, serif',
+        fontSize: '19px',
+        color: enabled ? '#fff0ce' : '#eee2cf',
+        fontStyle: 'bold',
       })
       .setOrigin(0.5)
 
@@ -207,6 +210,7 @@ export class ShopCatalogPanel {
       icon,
       name,
       detail,
+      actionSkin,
       actionButton,
       actionLabel,
     ]
@@ -215,23 +219,23 @@ export class ShopCatalogPanel {
     if (item.equipped) {
       badge = this.scene.add
         .text(0, 0, 'EQUIPPED', {
-          fontFamily: 'monospace',
-          fontSize: '9px',
-          color: '#ffe08a',
+          fontFamily: 'Georgia, serif',
+          fontSize: '13px',
+          color: '#b5791d',
+          fontStyle: 'bold',
         })
         .setOrigin(0, 0)
       objects.push(badge)
     }
 
-    return { row, iconHost, icon, name, detail, actionButton, actionLabel, badge, objects }
+    return { row, iconHost, icon, name, detail, actionSkin, actionButton, actionLabel, badge, objects }
   }
 
   private buildPlaceholderRow(placeholder: ShopCatalogPlaceholderState): CatalogRowSlot {
     const { rowWidth, rowHeight, textWidth, buttonWidth, buttonHeight, iconSize } = ShopUIConfig.catalogList
 
-    const row = this.scene.add
-      .rectangle(0, 0, rowWidth, rowHeight, ShopUIConfig.window.cardLockedColor, 0.88)
-      .setStrokeStyle(1, 0x3d5668)
+    const row = this.scene.add.graphics()
+    ShopChromePainter.drawCatalogRow(row, rowWidth, rowHeight, true)
 
     const iconHost =
       placeholder.placeholderKind === 'rod'
@@ -240,8 +244,8 @@ export class ShopCatalogPanel {
 
     const name = this.scene.add
       .text(0, 0, '???', {
-        fontFamily: 'monospace',
-        fontSize: '14px',
+        fontFamily: 'Georgia, serif',
+        fontSize: '22px',
         color: ShopUIConfig.window.placeholderTextColor,
         fontStyle: 'bold',
       })
@@ -249,28 +253,31 @@ export class ShopCatalogPanel {
 
     const detail = this.scene.add
       .text(0, 0, 'Coming soon', {
-        fontFamily: 'monospace',
-        fontSize: '11px',
+        fontFamily: 'Georgia, serif',
+        fontSize: '12px',
         color: ShopUIConfig.window.placeholderTextColor,
         wordWrap: { width: textWidth },
+        fontStyle: 'bold',
       })
       .setOrigin(0, 0)
 
+    const actionSkin = this.scene.add.graphics()
+    ShopChromePainter.drawButton(actionSkin, buttonWidth, buttonHeight, 'disabled')
     const actionButton = this.scene.add
-      .rectangle(0, 0, buttonWidth, buttonHeight, ShopUIConfig.window.purchaseButtonDisabledColor, 0.95)
-      .setStrokeStyle(1, ShopUIConfig.window.purchaseButtonDisabledBorderColor)
+      .rectangle(0, 0, buttonWidth, buttonHeight, 0xffffff, 0.001)
 
     const actionLabel = this.scene.add
       .text(0, 0, 'Locked', {
-        fontFamily: 'monospace',
-        fontSize: '12px',
-        color: '#b8c2ca',
+        fontFamily: 'Georgia, serif',
+        fontSize: '19px',
+        color: '#eee2cf',
+        fontStyle: 'bold',
       })
       .setOrigin(0.5)
 
-    const objects = [row, iconHost, name, detail, actionButton, actionLabel]
+    const objects = [row, iconHost, name, detail, actionSkin, actionButton, actionLabel]
 
-    return { row, iconHost, name, detail, actionButton, actionLabel, objects }
+    return { row, iconHost, name, detail, actionSkin, actionButton, actionLabel, objects }
   }
 
   private actionForItem(item: ShopCatalogItemState): {
@@ -280,6 +287,16 @@ export class ShopCatalogPanel {
     enabled: boolean
     action: 'buy' | 'equip' | null
   } {
+    if (item.itemKind === 'passive' && item.owned) {
+      return {
+        fill: ShopUIConfig.window.purchaseButtonDisabledColor,
+        border: ShopUIConfig.window.purchaseButtonDisabledBorderColor,
+        label: 'Earning',
+        enabled: false,
+        action: null,
+      }
+    }
+
     if (item.equipped) {
       return {
         fill: ShopUIConfig.window.purchaseButtonDisabledColor,

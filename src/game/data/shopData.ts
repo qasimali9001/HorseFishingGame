@@ -19,6 +19,6 @@ export const ShopCategories: readonly ShopCategoryDefinition[] = [
   {
     id: 'investments',
     title: 'Investments',
-    description: 'Long-term upgrades. More options coming soon.',
+    description: 'Passive income while you fish. More options coming soon.',
   },
 ] as const

@@ -169,7 +169,7 @@ export const FISH_DATA: readonly FishDefinition[] = [
     biomeIds: ['the-maw'],
     rarity: 'legendary',
     value: 150,
-    speed: 47,
+    speed: 82,
     aggressionRadius: 1040,
     respawnMs: 30000,
     radius: 55,

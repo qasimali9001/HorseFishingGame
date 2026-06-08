@@ -70,6 +70,8 @@ export const GameEvents = {
   QUEST_COMPLETED: 'quest-completed',
   /** A shop catalog item was newly purchased. payload: { catalogId, itemId } */
   SHOP_ITEM_PURCHASED: 'shop-item-purchased',
+  /** Passive investments paid out. payload: { amount } */
+  INVESTMENT_PAYOUT: 'investment-payout',
 } as const
 
 export type GameEventName = (typeof GameEvents)[keyof typeof GameEvents]

@@ -12,7 +12,7 @@ export function buildPlaceholderRows(
   }))
 }
 
-export const RodPlaceholders = buildPlaceholderRows('rod', 2, 'rod-placeholder')
+export const RodPlaceholders = buildPlaceholderRows('rod', 1, 'rod-placeholder')
 export const BoatPlaceholders = buildPlaceholderRows('boat', 4, 'boat-placeholder')
 export const LurePlaceholders = buildPlaceholderRows('lure', 2, 'lure-placeholder')
-export const InvestmentPlaceholders = buildPlaceholderRows('investment', 4, 'investment-placeholder')
+export const InvestmentPlaceholders = buildPlaceholderRows('investment', 3, 'investment-placeholder')

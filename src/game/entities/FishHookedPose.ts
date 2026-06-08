@@ -20,30 +20,30 @@ export class FishHookedPose {
     return width * FishConfig.hookedPose.mouthLeadWidthScale
   }
 
-  /** Body-center position so the mouth sits on the hook point. */
+  /** Body-center position so the mouth sits on the bait/hook point. */
   static bodyTargetAtHook(
     scene: Phaser.Scene,
     def: FishDefinition,
-    lureX: number,
-    lureY: number,
+    hookX: number,
+    hookY: number,
   ): HookedBodyTarget {
     return FishHookedPose.bodyTargetAtHookFromLead(
-      lureX,
-      lureY,
+      hookX,
+      hookY,
       FishHookedPose.mouthLeadFromCenter(scene, def),
     )
   }
 
   /** Same as bodyTargetAtHook but reuses a precomputed mouth lead (per-fish cache). */
   static bodyTargetAtHookFromLead(
-    lureX: number,
-    lureY: number,
+    hookX: number,
+    hookY: number,
     mouthLead: number,
   ): HookedBodyTarget {
     const pose = FishConfig.hookedPose
     return {
-      x: lureX + pose.hookOffsetX,
-      y: lureY + pose.hookOffsetY + mouthLead,
+      x: hookX + pose.hookOffsetX,
+      y: hookY + pose.hookOffsetY + mouthLead,
     }
   }
 
