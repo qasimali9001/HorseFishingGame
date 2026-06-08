@@ -62,6 +62,14 @@ export const GameEvents = {
   DEBUG_TICK: 'debug-tick',
   /** Sound-effects master volume changed. payload: { volume } */
   SFX_VOLUME_CHANGED: 'sfx-volume-changed',
+  /** UI requests current quest state snapshot. */
+  QUEST_STATE_REQUESTED: 'quest-state-requested',
+  /** Active quest or progress changed. payload: QuestStateSnapshot */
+  QUEST_STATE_CHANGED: 'quest-state-changed',
+  /** A quest was completed and its gold reward granted. payload: { questId, title, goldReward } */
+  QUEST_COMPLETED: 'quest-completed',
+  /** A shop catalog item was newly purchased. payload: { catalogId, itemId } */
+  SHOP_ITEM_PURCHASED: 'shop-item-purchased',
 } as const
 
 export type GameEventName = (typeof GameEvents)[keyof typeof GameEvents]

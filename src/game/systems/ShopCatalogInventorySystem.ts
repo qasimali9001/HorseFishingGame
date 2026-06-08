@@ -160,6 +160,10 @@ export class ShopCatalogInventorySystem<TItem extends ShopCatalogItemDefinition>
     this.ownedIds.add(item.id)
     this.equippedId = item.id
     this.persist()
+    EventBus.emit(GameEvents.SHOP_ITEM_PURCHASED, {
+      catalogId: this.options.catalogId,
+      itemId: item.id,
+    })
     EventBus.emit(GameEvents.SHOP_PURCHASE_FEEDBACK, {
       message: `Bought and equipped ${item.displayName} for $${item.cost}.`,
       tone: 'success',

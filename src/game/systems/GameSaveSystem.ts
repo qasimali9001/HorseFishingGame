@@ -1,5 +1,6 @@
 import { GameSaveConfig } from '../config/GameSaveConfig'
 import type { ShopCatalogId } from '../types/ShopCatalogTypes'
+import type { QuestSaveState } from './QuestSystem'
 
 export interface CatalogSaveState {
   readonly ownedIds: readonly string[]
@@ -10,6 +11,7 @@ interface GameSaveData {
   readonly version: number
   readonly money: number
   readonly catalogs: Partial<Record<ShopCatalogId, CatalogSaveState>>
+  readonly quests?: QuestSaveState
 }
 
 const CatalogIds = ['rods', 'boats', 'lures', 'investments'] as const satisfies readonly ShopCatalogId[]
@@ -54,6 +56,16 @@ function parseCatalogState(value: unknown): CatalogSaveState | null {
     ownedIds: value.ownedIds.filter((id): id is string => typeof id === 'string'),
     equippedId: value.equippedId,
   }
+}
+
+function parseQuestState(value: unknown): QuestSaveState | null {
+  if (!isRecord(value) || typeof value.activeIndex !== 'number' || typeof value.progress !== 'number') {
+    return null
+  }
+
+  const activeIndex = Number.isFinite(value.activeIndex) ? Math.max(0, Math.floor(value.activeIndex)) : 0
+  const progress = Number.isFinite(value.progress) ? Math.max(0, Math.floor(value.progress)) : 0
+  return { activeIndex, progress }
 }
 
 /**
@@ -105,6 +117,29 @@ export class GameSaveSystem {
     this.write()
   }
 
+  getQuestState(): QuestSaveState | undefined {
+    const state = this.data.quests
+    if (!state) {
+      return undefined
+    }
+
+    return {
+      activeIndex: state.activeIndex,
+      progress: state.progress,
+    }
+  }
+
+  setQuestState(state: QuestSaveState): void {
+    this.data = {
+      ...this.data,
+      quests: {
+        activeIndex: Math.max(0, Math.floor(state.activeIndex)),
+        progress: Math.max(0, Math.floor(state.progress)),
+      },
+    }
+    this.write()
+  }
+
   private load(): GameSaveData {
     if (!this.storage) {
       return createDefaultSave()
@@ -130,10 +165,13 @@ export class GameSaveSystem {
         }
       }
 
+      const quests = parseQuestState(parsed.quests) ?? undefined
+
       return {
         version: GameSaveConfig.version,
         money: parseMoney(parsed.money),
         catalogs,
+        quests,
       }
     } catch {
       return createDefaultSave()

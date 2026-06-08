@@ -7,8 +7,10 @@ import { ShopToggleButton } from '../ui/ShopToggleButton'
 import { ShopWindow } from '../ui/ShopWindow'
 import { SettingsToggleButton } from '../ui/SettingsToggleButton'
 import { SettingsWindow } from '../ui/SettingsWindow'
+import { QuestPanel } from '../ui/QuestPanel'
 import { audioSettings } from '../systems/AudioSettingsSystem'
 import type { ShopStateSnapshot } from '../types/ShopTypes'
+import type { QuestStateSnapshot } from '../types/QuestTypes'
 
 interface DebugTickPayload {
   depth: number
@@ -60,6 +62,11 @@ interface ShopFeedbackPayload {
   tone: 'success' | 'error' | 'neutral'
 }
 
+interface QuestCompletedPayload {
+  title: string
+  goldReward: number
+}
+
 /**
  * Screen-fixed UI. Its own camera never scrolls, so HUD elements use plain
  * screen coordinates here (this is the one place that's correct). Reacts to
@@ -79,6 +86,7 @@ export class UIScene extends Phaser.Scene {
   private shopToggleKey?: Phaser.Input.Keyboard.Key
   private settingsButton?: SettingsToggleButton
   private settingsWindow?: SettingsWindow
+  private questPanel?: QuestPanel
 
   constructor() {
     super(SceneKeys.UI)
@@ -94,6 +102,7 @@ export class UIScene extends Phaser.Scene {
       this.createDebugOverlay()
     }
 
+    this.createQuestUI()
     this.createShopUI()
     this.createSettingsUI()
     audioSettings.applyToMusic()
@@ -298,6 +307,24 @@ export class UIScene extends Phaser.Scene {
     }
     EventBus.on(GameEvents.DEBUG_TICK, onTick)
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => EventBus.off(GameEvents.DEBUG_TICK, onTick))
+  }
+
+  private createQuestUI(): void {
+    this.questPanel = new QuestPanel(this)
+
+    const onQuestState = (snapshot: QuestStateSnapshot) => this.questPanel?.setState(snapshot)
+    const onQuestCompleted = (payload: QuestCompletedPayload) =>
+      this.showNotice(`Quest complete: ${payload.title}!  +$${payload.goldReward}`, '#ffe08a')
+
+    EventBus.on(GameEvents.QUEST_STATE_CHANGED, onQuestState)
+    EventBus.on(GameEvents.QUEST_COMPLETED, onQuestCompleted)
+    EventBus.emit(GameEvents.QUEST_STATE_REQUESTED)
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      EventBus.off(GameEvents.QUEST_STATE_CHANGED, onQuestState)
+      EventBus.off(GameEvents.QUEST_COMPLETED, onQuestCompleted)
+      this.questPanel?.destroy()
+    })
   }
 
   private createShopUI(): void {

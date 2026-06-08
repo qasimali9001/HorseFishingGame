@@ -27,6 +27,7 @@ import { ShopSystem } from '../systems/ShopSystem'
 import { FishingStateMachine } from '../systems/FishingStateMachine'
 import { BaitSystem } from '../systems/BaitSystem'
 import { CatchDecisionSystem } from '../systems/CatchDecisionSystem'
+import { QuestSystem } from '../systems/QuestSystem'
 import { sfxController } from '../systems/SfxController'
 import { EventBus } from '../events/EventBus'
 import { GameEvents } from '../events/GameEvents'
@@ -53,6 +54,7 @@ export class WorldScene extends Phaser.Scene {
   private shop!: ShopSystem
   private bait!: BaitSystem
   private catchDecision!: CatchDecisionSystem
+  private quests!: QuestSystem
   private fishing!: FishingStateMachine
 
   constructor() {
@@ -89,6 +91,7 @@ export class WorldScene extends Phaser.Scene {
     this.stats = new PlayerStats(this.horse, this.lure)
     this.bait = new BaitSystem()
     this.catchDecision = new CatchDecisionSystem(this.economy, this.bait)
+    this.quests = new QuestSystem(this.economy, this.save)
     this.lure.setBaitColor(this.bait.color)
 
     this.fishing = new FishingStateMachine({
@@ -118,6 +121,7 @@ export class WorldScene extends Phaser.Scene {
       this.inputSystem.destroy()
       this.fishing.destroy()
       this.shop.destroy()
+      this.quests.destroy()
       this.economy.destroy()
       this.bait.destroy()
     })

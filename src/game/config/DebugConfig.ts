@@ -1,7 +1,7 @@
 /** Debug overlays + dev helpers. Flip these off for a clean build. */
 export const DebugConfig = {
   /** Show the on-screen debug HUD (state, depth, camera mode). */
-  showOverlay: true,
+  showOverlay: false,
 
   /** Show the old world-space ruler grid over the real scene art. */
   showWorldGrid: false,
