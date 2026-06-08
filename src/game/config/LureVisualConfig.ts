@@ -6,20 +6,29 @@ export interface LureVisualLayout {
   baitOffsetY: number
 }
 
-/** Shared bobber + hook rig used by basic and weighted lure art. */
-const bobberHookLayout: LureVisualLayout = {
+/** Bobber + hook rig (no sinker). Origin = top line eyelet. */
+const basicBobberHookLayout: LureVisualLayout = {
   originX: 0.5,
   originY: 0.12,
-  /** Left/down from shank center so bait sits on the barbed hook point. */
-  baitOffsetX: -13,
-  baitOffsetY: 36,
+  /** Left/down to the barbed hook point on lure_basic.png. */
+  baitOffsetX: -7,
+  baitOffsetY: 29,
+}
+
+/** Same bobber/hook head; extra weight hangs below the curve on longer art. */
+const weight10kgBobberHookLayout: LureVisualLayout = {
+  originX: 0.5,
+  originY: 0.12,
+  /** Left/down to the barbed hook point on lure_10kg_weight.png. */
+  baitOffsetX: -12,
+  baitOffsetY: 23,
 }
 
 export const LureVisualConfig = {
-  defaultLayout: bobberHookLayout,
+  defaultLayout: basicBobberHookLayout,
   byVisualId: {
-    'lure-basic': bobberHookLayout,
-    'lure-10kg-weight': bobberHookLayout,
+    'lure-basic': basicBobberHookLayout,
+    'lure-10kg-weight': weight10kgBobberHookLayout,
   } as Record<string, LureVisualLayout>,
 }
 

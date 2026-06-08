@@ -170,11 +170,11 @@ export class ShopWindow {
     const contentHeight = ShopUIConfig.window.height - 92
     const contentTop = panelTop + 76
     const contentPanelLeft = centerX - contentWidth * 0.5
-    const contentPanelRight = centerX + contentWidth * 0.5
     const controlY = panelTop + 116
     const controlInset = 8
     const moneyX = contentPanelLeft + controlInset + ShopUIConfig.window.money.width * 0.5
-    const closeX = contentPanelRight - controlInset - 52
+    const closeX = centerX + ShopUIConfig.window.width * 0.5 - 74
+    const closeY = panelTop + 37
 
     this.frame.setPosition(centerX, centerY)
     ShopChromePainter.drawWindowFrame(this.frame, ShopUIConfig.window.width, ShopUIConfig.window.height)
@@ -191,10 +191,10 @@ export class ShopWindow {
     this.subtitle.setPosition(centerX - this.subtitle.width * 0.5, panelTop + 56)
     this.moneyText.setPosition(moneyX - 58, controlY)
 
-    this.closeButtonSkin.setPosition(closeX, controlY)
+    this.closeButtonSkin.setPosition(closeX, closeY)
     ShopChromePainter.drawButton(this.closeButtonSkin, 104, 42, 'close')
-    this.closeButtonHitArea.setPosition(closeX, controlY)
-    this.closeButtonLabel.setPosition(closeX, controlY)
+    this.closeButtonHitArea.setPosition(closeX, closeY)
+    this.closeButtonLabel.setPosition(closeX, closeY)
     this.layoutDynamicContent(centerX, panelTop)
   }
 

@@ -67,12 +67,7 @@ export class FishAISystem {
     )
     const swimSpeed = fish.swimSpeed * speedScale
     const desiredVx = (dx / dist) * swimSpeed
-
-    const verticalSpeed = Phaser.Math.Linear(
-      attraction.minVerticalSpeed,
-      attraction.maxVerticalSpeed,
-      aggression,
-    )
+    const verticalSpeed = swimSpeed * attraction.verticalSpeedRatio
     const baseYDelta = Phaser.Math.Clamp((dy / dist) * verticalSpeed * dtSec, -Math.abs(dy), Math.abs(dy))
 
     fish.applySteer(desiredVx, steerAlpha, baseYDelta)

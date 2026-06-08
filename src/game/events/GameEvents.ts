@@ -22,6 +22,8 @@ export const GameEvents = {
   CATCH_DECISION_CLEARED: 'catch-decision-cleared',
   /** A larger fish stole the hooked fish before landing. payload: { fishId, displayName } */
   CATCH_LOST: 'catch-lost',
+  /** A fish ate bait that was too small to hook it. payload: { fishId, displayName } */
+  BAIT_EATEN: 'bait-eaten',
   /** UI requests current bait state. */
   BAIT_STATE_REQUESTED: 'bait-state-requested',
   /** Current bait tier changed. payload: { baitTier, color, label } */

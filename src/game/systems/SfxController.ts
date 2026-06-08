@@ -35,6 +35,7 @@ export class SfxController {
     EventBus.on(GameEvents.FISH_HOOKED, this.handleFishHooked)
     EventBus.on(GameEvents.CATCH_LANDED, this.handleCatchLanded)
     EventBus.on(GameEvents.CATCH_LOST, this.handleCatchLost)
+    EventBus.on(GameEvents.BAIT_EATEN, this.handleBaitEaten)
     EventBus.on(GameEvents.SFX_VOLUME_CHANGED, this.handleSfxVolumeChanged)
     this.eventsConnected = true
   }
@@ -50,6 +51,7 @@ export class SfxController {
     EventBus.off(GameEvents.FISH_HOOKED, this.handleFishHooked)
     EventBus.off(GameEvents.CATCH_LANDED, this.handleCatchLanded)
     EventBus.off(GameEvents.CATCH_LOST, this.handleCatchLost)
+    EventBus.off(GameEvents.BAIT_EATEN, this.handleBaitEaten)
     EventBus.off(GameEvents.SFX_VOLUME_CHANGED, this.handleSfxVolumeChanged)
     this.eventsConnected = false
     this.stopAllLoops()
@@ -158,6 +160,10 @@ export class SfxController {
 
   private readonly handleCatchLost = (): void => {
     this.playOneShot('catchLost')
+  }
+
+  private readonly handleBaitEaten = (): void => {
+    this.playOneShot('fishBite')
   }
 
   private readonly handleSfxVolumeChanged = (): void => {

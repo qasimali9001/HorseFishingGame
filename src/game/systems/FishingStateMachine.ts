@@ -12,6 +12,7 @@ import type { PlayerStats } from './PlayerStats'
 import type { FishPopulation } from '../types/SpawnPointTypes'
 import type { FishAISystem } from './FishAISystem'
 import type { PredatorSystem } from './PredatorSystem'
+import type { BaitTheftSystem } from './BaitTheftSystem'
 import type { BiomeSystem } from './BiomeSystem'
 import type { HookCollisionSystem } from './HookCollisionSystem'
 import type { CastPowerBar } from '../entities/CastPowerBar'
@@ -31,6 +32,7 @@ export interface FishingDeps {
   spawn: FishPopulation
   fishAI: FishAISystem
   predators: PredatorSystem
+  baitTheft: BaitTheftSystem
   biomes: BiomeSystem
   hook: HookCollisionSystem
   bait: BaitSystem
@@ -124,6 +126,7 @@ export class FishingStateMachine {
 
     if (fishing) {
       this.handleHooking(dtSec)
+      this.handleBaitTheft(dtSec)
     }
 
     // Predators chase the hooked fish; a successful steal resolves CatchLost.
@@ -161,6 +164,16 @@ export class FishingStateMachine {
     return requested
   }
 
+  /** A fish ate bait that was too small to hook it; reel back to the horse to rebait. */
+  private loseBait(fish: Fish): void {
+    EventBus.emit(GameEvents.BAIT_EATEN, {
+      fishId: fish.def.id,
+      displayName: fish.def.displayName,
+    })
+    this.clearHookBait()
+    this.setState(FishingState.CatchLost)
+  }
+
   /** A larger fish ate the hooked fish: announce it and leave the hook baitless. */
   private loseCatch(): void {
     const fish = this.hookedFish
@@ -170,10 +183,32 @@ export class FishingStateMachine {
     EventBus.emit(GameEvents.CATCH_LOST, { fishId: fish.def.id, displayName: fish.def.displayName })
     this.deps.spawn.remove(fish)
     this.hookedFish = null
+    this.clearHookBait()
+    this.setState(FishingState.CatchLost)
+  }
+
+  private clearHookBait(): void {
     this.hookHasBait = false
     this.resetBaitOnLanding = true
     this.deps.lure.setBaitVisible(false)
-    this.setState(FishingState.CatchLost)
+  }
+
+  private handleBaitTheft(dtSec: number): void {
+    if (this.hookedFish || !this.hookHasBait) {
+      return
+    }
+
+    const eater = this.deps.baitTheft.update(dtSec, {
+      baitX: this.deps.lure.baitX,
+      baitY: this.deps.lure.baitY,
+      hookRadius: this.deps.lure.hookRadius,
+      canHook: (requiredTier) => this.deps.bait.canHook(requiredTier),
+      fish: this.deps.spawn.list,
+      active: true,
+    })
+    if (eater) {
+      this.loseBait(eater)
+    }
   }
 
   /**

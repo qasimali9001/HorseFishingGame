@@ -211,12 +211,15 @@ export class UIScene extends Phaser.Scene {
       this.showNotice(`${p.displayName} became ${p.nextBaitTier} bait`, '#fff4c4')
     const onCleared = () => this.hideCatchDecision()
     const onLost = (p: CatchLostPayload) => this.showNotice(`${p.displayName} got away!`, '#ffd0d0')
+    const onBaitEaten = (p: CatchLostPayload) =>
+      this.showNotice(`${p.displayName} ate your bait! Reel in to rebait.`, '#ffd0d0')
     EventBus.on(GameEvents.CATCH_LANDED, onCatch)
     EventBus.on(GameEvents.CATCH_DECISION_REQUIRED, onDecision)
     EventBus.on(GameEvents.CATCH_SOLD, onSold)
     EventBus.on(GameEvents.CATCH_CHUCKED, onChucked)
     EventBus.on(GameEvents.CATCH_DECISION_CLEARED, onCleared)
     EventBus.on(GameEvents.CATCH_LOST, onLost)
+    EventBus.on(GameEvents.BAIT_EATEN, onBaitEaten)
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       EventBus.off(GameEvents.CATCH_LANDED, onCatch)
       EventBus.off(GameEvents.CATCH_DECISION_REQUIRED, onDecision)
@@ -224,6 +227,7 @@ export class UIScene extends Phaser.Scene {
       EventBus.off(GameEvents.CATCH_CHUCKED, onChucked)
       EventBus.off(GameEvents.CATCH_DECISION_CLEARED, onCleared)
       EventBus.off(GameEvents.CATCH_LOST, onLost)
+      EventBus.off(GameEvents.BAIT_EATEN, onBaitEaten)
     })
   }
 

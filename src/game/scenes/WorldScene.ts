@@ -20,6 +20,7 @@ import { SpawnConfig } from '../config/SpawnConfig'
 import type { FishPopulation } from '../types/SpawnPointTypes'
 import { FishAISystem } from '../systems/FishAISystem'
 import { PredatorSystem } from '../systems/PredatorSystem'
+import { BaitTheftSystem } from '../systems/BaitTheftSystem'
 import { HookCollisionSystem } from '../systems/HookCollisionSystem'
 import { EconomySystem } from '../systems/EconomySystem'
 import { GameSaveSystem } from '../systems/GameSaveSystem'
@@ -50,6 +51,7 @@ export class WorldScene extends Phaser.Scene {
   private spawn!: FishPopulation
   private fishAI!: FishAISystem
   private predators!: PredatorSystem
+  private baitTheft!: BaitTheftSystem
   private save!: GameSaveSystem
   private economy!: EconomySystem
   private shop!: ShopSystem
@@ -58,6 +60,7 @@ export class WorldScene extends Phaser.Scene {
   private catchDecision!: CatchDecisionSystem
   private quests!: QuestSystem
   private fishing!: FishingStateMachine
+  private cheekyShopUnlockKey?: Phaser.Input.Keyboard.Key
 
   constructor() {
     super(SceneKeys.World)
@@ -87,10 +90,12 @@ export class WorldScene extends Phaser.Scene {
         : new FishSpawnSystem(this, this.biomes)
     this.fishAI = new FishAISystem()
     this.predators = new PredatorSystem(this, this.biomes)
+    this.baitTheft = new BaitTheftSystem()
     this.save = new GameSaveSystem()
     this.economy = new EconomySystem(this.save)
     this.investments = new InvestmentSystem(this.economy, this.save)
     this.shop = new ShopSystem(this.economy, this.save, this.investments)
+    this.bindCheekyShopUnlock()
     this.stats = new PlayerStats(this.horse, this.lure)
     this.bait = new BaitSystem()
     this.catchDecision = new CatchDecisionSystem(this.economy, this.bait)
@@ -107,6 +112,7 @@ export class WorldScene extends Phaser.Scene {
       spawn: this.spawn,
       fishAI: this.fishAI,
       predators: this.predators,
+      baitTheft: this.baitTheft,
       biomes: this.biomes,
       hook: new HookCollisionSystem(),
       bait: this.bait,
@@ -119,6 +125,7 @@ export class WorldScene extends Phaser.Scene {
     this.time.delayedCall(0, () => this.cameraController.refreshSurfaceFrame())
     this.scale.on(Phaser.Scale.Events.RESIZE, this.handleViewportResize, this)
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.cheekyShopUnlockKey?.off(Phaser.Input.Keyboard.Events.DOWN)
       sfxController.disconnectGameplayEvents()
       this.scale.off(Phaser.Scale.Events.RESIZE, this.handleViewportResize, this)
       this.inputSystem.destroy()
@@ -128,6 +135,17 @@ export class WorldScene extends Phaser.Scene {
       this.quests.destroy()
       this.economy.destroy()
       this.bait.destroy()
+    })
+  }
+
+  private bindCheekyShopUnlock(): void {
+    if (!DebugConfig.cheekyShopUnlock) {
+      return
+    }
+
+    this.cheekyShopUnlockKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.U)
+    this.cheekyShopUnlockKey?.on(Phaser.Input.Keyboard.Events.DOWN, () => {
+      this.shop.debugUnlockAll()
     })
   }
 

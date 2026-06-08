@@ -8,4 +8,7 @@ export const DebugConfig = {
 
   /** Show rig attachment points (mouth anchor, rod tip) as small dots. */
   showAnchors: false,
+
+  /** Press U in-world to unlock every shop item (dev cheat). */
+  cheekyShopUnlock: true,
 } as const

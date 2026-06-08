@@ -98,9 +98,8 @@ export const FishConfig = {
     maxAggressiveRadius: 28,
     /** Horizontal velocity steering toward the bait (per 1/60s). */
     steerResponse: 0.045,
-    /** Vertical attraction speed range (world units / second). */
-    minVerticalSpeed: 18,
-    maxVerticalSpeed: 70,
+    /** Vertical chase speed as a fraction of horizontal chase speed. */
+    verticalSpeedRatio: 0.75,
   },
 
   /** When aggro drops, fish drift back to their spawn/home path. */
@@ -121,5 +120,11 @@ export const FishConfig = {
     bitePadding: 10,
     /** Time a predator must stay in bite range before the hooked fish is stolen. */
     biteHoldSec: 0.75,
+  },
+
+  /** Fish that need bigger bait can eat undersized bait off the hook. */
+  baitTheft: {
+    bitePadding: 10,
+    biteHoldSec: 0.65,
   },
 } as const

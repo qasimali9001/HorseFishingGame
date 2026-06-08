@@ -9,6 +9,7 @@ import type { ShopCatalogSavePort } from './ShopCatalogInventorySystem'
 
 export interface InvestmentCatalogPort {
   getShopItemStates(): readonly ShopCatalogItemState[]
+  debugUnlockAll(): void
 }
 
 /**
@@ -35,6 +36,15 @@ export class InvestmentSystem implements InvestmentCatalogPort {
 
   getShopItemStates(): readonly ShopCatalogItemState[] {
     return ShopInvestments.map((investment) => this.toShopItemState(investment))
+  }
+
+  /** Dev cheat: grant every passive investment without spending money. */
+  debugUnlockAll(): void {
+    for (const investment of ShopInvestments) {
+      this.ownedIds.add(investment.id)
+    }
+    this.persist()
+    this.emitChanged()
   }
 
   /** Grants passive income on the global payout interval. */

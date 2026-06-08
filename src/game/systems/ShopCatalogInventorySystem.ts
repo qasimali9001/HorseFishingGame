@@ -67,6 +67,15 @@ export class ShopCatalogInventorySystem<TItem extends ShopCatalogItemDefinition>
     return this.options.items.map((item) => this.toShopItemState(item))
   }
 
+  /** Dev cheat: mark every catalog row as owned without spending money. */
+  debugUnlockAll(): void {
+    for (const item of this.options.items) {
+      this.ownedIds.add(item.id)
+    }
+    this.persist()
+    this.emitChanged()
+  }
+
   private toShopItemState(item: TItem): ShopCatalogItemState {
     const owned = this.ownedIds.has(item.id)
     const equipped = this.equippedId === item.id

@@ -37,6 +37,18 @@ export class ShopSystem {
     this.emitState()
   }
 
+  /** Dev cheat: unlock rods, lures, and investments in one go. */
+  debugUnlockAll(): void {
+    this.rods.debugUnlockAll()
+    this.lures.debugUnlockAll()
+    this.investments.debugUnlockAll()
+    EventBus.emit(GameEvents.SHOP_PURCHASE_FEEDBACK, {
+      message: 'Yeehaw — the horse cleared out the whole tackle shop.',
+      tone: 'success',
+    })
+    this.emitState()
+  }
+
   destroy(): void {
     EventBus.off(GameEvents.SHOP_STATE_REQUESTED, this.onStateRequested)
     EventBus.off(GameEvents.MONEY_CHANGED, this.onMoneyChanged)
