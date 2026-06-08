@@ -12,6 +12,7 @@ interface GameSaveData {
   readonly money: number
   readonly catalogs: Partial<Record<ShopCatalogId, CatalogSaveState>>
   readonly quests?: QuestSaveState
+  readonly caughtFishIds?: readonly string[]
 }
 
 const CatalogIds = ['rods', 'boats', 'lures', 'investments'] as const satisfies readonly ShopCatalogId[]
@@ -66,6 +67,14 @@ function parseQuestState(value: unknown): QuestSaveState | null {
   const activeIndex = Number.isFinite(value.activeIndex) ? Math.max(0, Math.floor(value.activeIndex)) : 0
   const progress = Number.isFinite(value.progress) ? Math.max(0, Math.floor(value.progress)) : 0
   return { activeIndex, progress }
+}
+
+function parseCaughtFishIds(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return [...new Set(value.filter((id): id is string => typeof id === 'string'))]
 }
 
 /**
@@ -140,6 +149,18 @@ export class GameSaveSystem {
     this.write()
   }
 
+  getCaughtFishIds(): readonly string[] {
+    return [...(this.data.caughtFishIds ?? [])]
+  }
+
+  setCaughtFishIds(caughtFishIds: readonly string[]): void {
+    this.data = {
+      ...this.data,
+      caughtFishIds: [...new Set(caughtFishIds)],
+    }
+    this.write()
+  }
+
   private load(): GameSaveData {
     if (!this.storage) {
       return createDefaultSave()
@@ -172,6 +193,7 @@ export class GameSaveSystem {
         money: parseMoney(parsed.money),
         catalogs,
         quests,
+        caughtFishIds: parseCaughtFishIds(parsed.caughtFishIds),
       }
     } catch {
       return createDefaultSave()

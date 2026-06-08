@@ -74,6 +74,10 @@ export const GameEvents = {
   SHOP_ITEM_PURCHASED: 'shop-item-purchased',
   /** Passive investments paid out. payload: { amount } */
   INVESTMENT_PAYOUT: 'investment-payout',
+  /** UI requests current fish catalog state snapshot. */
+  FISH_CATALOG_STATE_REQUESTED: 'fish-catalog-state-requested',
+  /** Fish catalog unlocks or state changed. payload: FishCatalogStateSnapshot */
+  FISH_CATALOG_STATE_CHANGED: 'fish-catalog-state-changed',
 } as const
 
 export type GameEventName = (typeof GameEvents)[keyof typeof GameEvents]

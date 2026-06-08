@@ -30,6 +30,7 @@ import { FishingStateMachine } from '../systems/FishingStateMachine'
 import { BaitSystem } from '../systems/BaitSystem'
 import { CatchDecisionSystem } from '../systems/CatchDecisionSystem'
 import { QuestSystem } from '../systems/QuestSystem'
+import { FishCatalogSystem } from '../systems/FishCatalogSystem'
 import { sfxController } from '../systems/SfxController'
 import { EventBus } from '../events/EventBus'
 import { GameEvents } from '../events/GameEvents'
@@ -59,6 +60,7 @@ export class WorldScene extends Phaser.Scene {
   private bait!: BaitSystem
   private catchDecision!: CatchDecisionSystem
   private quests!: QuestSystem
+  private fishCatalog!: FishCatalogSystem
   private fishing!: FishingStateMachine
   private cheekyShopUnlockKey?: Phaser.Input.Keyboard.Key
 
@@ -100,6 +102,7 @@ export class WorldScene extends Phaser.Scene {
     this.bait = new BaitSystem()
     this.catchDecision = new CatchDecisionSystem(this.economy, this.bait)
     this.quests = new QuestSystem(this.economy, this.save)
+    this.fishCatalog = new FishCatalogSystem(this.save)
     this.lure.setBaitColor(this.bait.color)
 
     this.fishing = new FishingStateMachine({
@@ -133,6 +136,7 @@ export class WorldScene extends Phaser.Scene {
       this.shop.destroy()
       this.investments.destroy()
       this.quests.destroy()
+      this.fishCatalog.destroy()
       this.economy.destroy()
       this.bait.destroy()
     })

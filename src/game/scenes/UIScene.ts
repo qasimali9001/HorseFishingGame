@@ -7,12 +7,15 @@ import { HudUIConfig } from '../config/HudUIConfig'
 import { ShopToggleButton } from '../ui/ShopToggleButton'
 import { ShopWindow } from '../ui/ShopWindow'
 import { ShopChromePainter } from '../ui/ShopChromePainter'
+import { FishCatalogToggleButton } from '../ui/FishCatalogToggleButton'
+import { FishCatalogWindow } from '../ui/FishCatalogWindow'
 import { SettingsToggleButton } from '../ui/SettingsToggleButton'
 import { SettingsWindow } from '../ui/SettingsWindow'
 import { QuestPanel } from '../ui/QuestPanel'
 import { audioSettings } from '../systems/AudioSettingsSystem'
 import type { ShopStateSnapshot } from '../types/ShopTypes'
 import type { QuestStateSnapshot } from '../types/QuestTypes'
+import type { FishCatalogStateSnapshot } from '../types/FishCatalogTypes'
 
 interface DebugTickPayload {
   depth: number
@@ -89,6 +92,9 @@ export class UIScene extends Phaser.Scene {
   private shopButton?: ShopToggleButton
   private shopWindow?: ShopWindow
   private shopToggleKey?: Phaser.Input.Keyboard.Key
+  private fishCatalogButton?: FishCatalogToggleButton
+  private fishCatalogWindow?: FishCatalogWindow
+  private fishCatalogToggleKey?: Phaser.Input.Keyboard.Key
   private settingsButton?: SettingsToggleButton
   private settingsWindow?: SettingsWindow
   private questPanel?: QuestPanel
@@ -109,6 +115,7 @@ export class UIScene extends Phaser.Scene {
 
     this.createQuestUI()
     this.createShopUI()
+    this.createFishCatalogUI()
     this.createSettingsUI()
     this.layoutHudChrome()
     this.scale.on(Phaser.Scale.Events.RESIZE, this.layoutHudChrome, this)
@@ -160,7 +167,8 @@ export class UIScene extends Phaser.Scene {
     const halfIcon = iconSize * 0.5
 
     const settingsX = rightEdge - halfIcon
-    const shopX = settingsX - iconSize - iconGap
+    const fishCatalogX = settingsX - iconSize - iconGap
+    const shopX = fishCatalogX - iconSize - iconGap
     const moneyCenterX = shopX - halfIcon - iconGap - moneyWidth * 0.5
 
     this.moneyPanel.setPosition(moneyCenterX, rowCenterY)
@@ -170,6 +178,7 @@ export class UIScene extends Phaser.Scene {
     this.moneyText.setPosition(moneyCenterX - moneyWidth * 0.5 + 42, rowCenterY)
 
     this.shopButton?.layoutAt(shopX, rowCenterY)
+    this.fishCatalogButton?.layoutAt(fishCatalogX, rowCenterY)
     this.settingsButton?.layoutAt(settingsX, rowCenterY)
   }
 
@@ -444,6 +453,7 @@ export class UIScene extends Phaser.Scene {
   private toggleShop(): void {
     const nextOpen = !(this.shopWindow?.isOpen ?? false)
     if (nextOpen) {
+      this.setFishCatalogOpen(false)
       this.setSettingsOpen(false)
     }
     this.setShopOpen(nextOpen)
@@ -452,6 +462,48 @@ export class UIScene extends Phaser.Scene {
   private setShopOpen(nextOpen: boolean): void {
     this.shopWindow?.setOpen(nextOpen)
     this.shopButton?.setActive(nextOpen)
+  }
+
+  private createFishCatalogUI(): void {
+    this.fishCatalogWindow = new FishCatalogWindow(this, {
+      onCloseRequested: () => this.setFishCatalogOpen(false),
+    })
+    this.fishCatalogButton = new FishCatalogToggleButton(this, () => this.toggleFishCatalog())
+    this.fishCatalogButton.setActive(false)
+
+    this.fishCatalogToggleKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.C)
+    this.fishCatalogToggleKey?.on(Phaser.Input.Keyboard.Events.DOWN, () => this.toggleFishCatalog())
+
+    const onFishCatalogState = (state: FishCatalogStateSnapshot) => this.fishCatalogWindow?.setState(state)
+    EventBus.on(GameEvents.FISH_CATALOG_STATE_CHANGED, onFishCatalogState)
+    EventBus.emit(GameEvents.FISH_CATALOG_STATE_REQUESTED)
+
+    this.scale.on(Phaser.Scale.Events.RESIZE, this.handleFishCatalogResize, this)
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.fishCatalogToggleKey?.off(Phaser.Input.Keyboard.Events.DOWN)
+      EventBus.off(GameEvents.FISH_CATALOG_STATE_CHANGED, onFishCatalogState)
+      this.scale.off(Phaser.Scale.Events.RESIZE, this.handleFishCatalogResize, this)
+      this.fishCatalogButton?.destroy()
+      this.fishCatalogWindow?.destroy()
+    })
+  }
+
+  private handleFishCatalogResize(): void {
+    this.fishCatalogWindow?.layout()
+  }
+
+  private toggleFishCatalog(): void {
+    const nextOpen = !(this.fishCatalogWindow?.isOpen ?? false)
+    if (nextOpen) {
+      this.setShopOpen(false)
+      this.setSettingsOpen(false)
+    }
+    this.setFishCatalogOpen(nextOpen)
+  }
+
+  private setFishCatalogOpen(nextOpen: boolean): void {
+    this.fishCatalogWindow?.setOpen(nextOpen)
+    this.fishCatalogButton?.setActive(nextOpen)
   }
 
   private createSettingsUI(): void {
@@ -476,6 +528,7 @@ export class UIScene extends Phaser.Scene {
     const nextOpen = !(this.settingsWindow?.isOpen ?? false)
     if (nextOpen) {
       this.setShopOpen(false)
+      this.setFishCatalogOpen(false)
     }
     this.setSettingsOpen(nextOpen)
   }
